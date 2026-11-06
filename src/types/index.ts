@@ -215,7 +215,9 @@ export interface TimelineItemProps {
 
 export interface ProjectCardProps {
   project: Project;
-  direction: 'left' | 'right';
+  direction?: 'left' | 'right';
+  variant?: 'alternating' | 'grid';
+  sizes?: string;
 }
 
 export interface SkillCategoryProps {
@@ -225,6 +227,7 @@ export interface SkillCategoryProps {
 
 export interface BlogCardProps {
   post: BlogPost;
+  sizes?: string;
 }
 
 // ===== THEME =====

@@ -7,7 +7,7 @@ import { blogTranslationAvailable } from '../lib/localized';
 import { estimateReadTime } from '../lib/content';
 import type { BlogCardProps } from '../types';
 
-export default function BlogCard({ post }: BlogCardProps) {
+export default function BlogCard({ post, sizes }: BlogCardProps) {
   const { locale, t } = useLocale();
   const date = post.published_at
     ? new Date(post.published_at).toLocaleDateString(dateLocale(locale), {
@@ -32,7 +32,7 @@ export default function BlogCard({ post }: BlogCardProps) {
             src={post.cover_url}
             alt={`Cover untuk ${post.title}`}
             fill
-            sizes="(min-width: 768px) 50vw, 100vw"
+            sizes={sizes ?? '(min-width: 768px) 50vw, 100vw'}
             className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (

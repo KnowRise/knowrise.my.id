@@ -1,11 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { Columns2, Columns3, Rows3 } from 'lucide-react';
 import SkillCategory from '../components/SkillCategory';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import PaginationControls from '../components/PaginationControls';
 import SearchInput from '../components/SearchInput';
+import ViewToggle, { type ViewOption } from '../components/ViewToggle';
 import { usePagination } from '../hooks/usePagination';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useStoredState } from '../hooks/useStoredState';
+import { GRID_COLUMN_OPTIONS, gridClass, type GridColumns } from '../lib/grid';
 import { supabase } from '../lib/supabase';
 import { useLocale } from '../context/LocaleContext';
 import type { Skill } from '../types';
@@ -18,8 +22,14 @@ export default function Skills() {
   const [groupedSkills, setGroupedSkills] = useState<{ categoryName: string, skills: Skill[] }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [columns, setColumns] = useStoredState<GridColumns>('knowrise:skill-view', '2', GRID_COLUMN_OPTIONS);
   const pg = usePagination(6);
   const debounced = useDebouncedValue(search, 350);
+  const viewOptions: ViewOption<GridColumns>[] = [
+    { value: '1', label: t('view.columns', { n: 1 }), icon: Rows3 },
+    { value: '2', label: t('view.columns', { n: 2 }), icon: Columns2 },
+    { value: '3', label: t('view.columns', { n: 3 }), icon: Columns3 },
+  ];
 
   useEffect(() => {
     if (pg.page !== 1) pg.resetPage();
@@ -90,8 +100,9 @@ export default function Skills() {
       </p>
 
       {!loading && (
-        <div className="mb-10">
-          <SearchInput value={search} onChange={setSearch} placeholder={t('skills.search')} className="max-w-md mx-auto" />
+        <div className="mb-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <SearchInput value={search} onChange={setSearch} placeholder={t('skills.search')} className="w-full sm:max-w-md" />
+          <ViewToggle value={columns} onChange={setColumns} options={viewOptions} label={t('view.label')} />
         </div>
       )}
 
@@ -103,7 +114,7 @@ export default function Skills() {
         </p>
       ) : (
         <div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className={gridClass(columns)}>
             {groupedSkills.map((group) => (
               <SkillCategory key={group.categoryName} category={group.categoryName} skills={group.skills} />
             ))}

@@ -1,10 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Loader2, BadgeCheck, ExternalLink } from 'lucide-react';
+import { Loader2, BadgeCheck, ExternalLink, Columns2, Columns3, Rows3 } from 'lucide-react';
 import PaginationControls from '../components/PaginationControls';
 import SearchInput from '../components/SearchInput';
+import ViewToggle, { type ViewOption } from '../components/ViewToggle';
 import { usePagination } from '../hooks/usePagination';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useStoredState } from '../hooks/useStoredState';
+import { GRID_COLUMN_OPTIONS, gridClass, type GridColumns } from '../lib/grid';
 import { supabase } from '../lib/supabase';
 import { useLocale } from '../context/LocaleContext';
 import { dateLocale } from '../lib/i18n';
@@ -15,8 +18,14 @@ export default function Certifications() {
   const [items, setItems] = useState<Certification[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [columns, setColumns] = useStoredState<GridColumns>('knowrise:certification-view', '3', GRID_COLUMN_OPTIONS);
   const pg = usePagination(8);
   const debounced = useDebouncedValue(search, 350);
+  const viewOptions: ViewOption<GridColumns>[] = [
+    { value: '1', label: t('view.columns', { n: 1 }), icon: Rows3 },
+    { value: '2', label: t('view.columns', { n: 2 }), icon: Columns2 },
+    { value: '3', label: t('view.columns', { n: 3 }), icon: Columns3 },
+  ];
 
   useEffect(() => {
     if (pg.page !== 1) pg.resetPage();
@@ -67,8 +76,9 @@ export default function Certifications() {
       </p>
 
       {!loading && (
-        <div className="mb-8">
-          <SearchInput value={search} onChange={setSearch} placeholder={t('cert.search')} className="max-w-md mx-auto" />
+        <div className="mb-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <SearchInput value={search} onChange={setSearch} placeholder={t('cert.search')} className="w-full sm:max-w-md" />
+          <ViewToggle value={columns} onChange={setColumns} options={viewOptions} label={t('view.label')} />
         </div>
       )}
 
@@ -81,7 +91,7 @@ export default function Certifications() {
         </div>
       ) : (
         <div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className={gridClass(columns)}>
             {pageItems.map((item) => (
             <div
               key={item.id}

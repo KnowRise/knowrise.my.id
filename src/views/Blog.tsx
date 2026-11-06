@@ -1,11 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { Columns2, Columns3, Rows3 } from 'lucide-react';
 import BlogCard from '../components/BlogCard';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import PaginationControls from '../components/PaginationControls';
 import SearchInput from '../components/SearchInput';
+import ViewToggle, { type ViewOption } from '../components/ViewToggle';
 import { usePagination } from '../hooks/usePagination';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useStoredState } from '../hooks/useStoredState';
+import { GRID_COLUMN_OPTIONS, gridClass, gridImageSizes, type GridColumns } from '../lib/grid';
 import { supabase } from '../lib/supabase';
 import { useLocale } from '../context/LocaleContext';
 import { localizeBlog } from '../lib/localized';
@@ -18,8 +22,14 @@ export default function Blog() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTag, setActiveTag] = useState<string>('');
+  const [columns, setColumns] = useStoredState<GridColumns>('knowrise:blog-view', '2', GRID_COLUMN_OPTIONS);
   const pg = usePagination(6);
   const debounced = useDebouncedValue(search, 350);
+  const viewOptions: ViewOption<GridColumns>[] = [
+    { value: '1', label: t('view.columns', { n: 1 }), icon: Rows3 },
+    { value: '2', label: t('view.columns', { n: 2 }), icon: Columns2 },
+    { value: '3', label: t('view.columns', { n: 3 }), icon: Columns3 },
+  ];
 
   useEffect(() => {
     if (!supabase) return;
@@ -106,8 +116,9 @@ export default function Blog() {
       )}
 
       {!loading && (
-        <div className="mb-8">
-          <SearchInput value={search} onChange={setSearch} placeholder={t('blog.search')} className="max-w-md mx-auto" />
+        <div className="mb-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <SearchInput value={search} onChange={setSearch} placeholder={t('blog.search')} className="w-full sm:max-w-md" />
+          <ViewToggle value={columns} onChange={setColumns} options={viewOptions} label={t('view.label')} />
         </div>
       )}
 
@@ -121,12 +132,14 @@ export default function Blog() {
             : <p>{t('blog.empty')}</p>}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {posts.map(post => (
-            <BlogCard key={post.id} post={post} />
-          ))}
+        <>
+          <div className={gridClass(columns)}>
+            {posts.map(post => (
+              <BlogCard key={post.id} post={post} sizes={gridImageSizes(columns)} />
+            ))}
+          </div>
           <PaginationControls page={pg.page} pageSize={pg.pageSize} total={pg.total} onChange={pg.setPage} />
-        </div>
+        </>
       )}
     </div>
   );

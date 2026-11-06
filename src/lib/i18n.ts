@@ -54,6 +54,9 @@ const idMessages = {
 
   'home.downloadCv': 'Unduh CV',
   'common.fallback': 'Terjemahan bahasa Inggris belum tersedia. Menampilkan versi Indonesia.',
+  'view.label': 'Tampilan',
+  'view.alternating': 'Kanan-kiri',
+  'view.columns': '{n} kolom',
   'notFound.message': 'Halaman yang kamu cari tidak ditemukan.',
   'notFound.home': 'Kembali ke Beranda',
 
@@ -77,8 +80,10 @@ const idMessages = {
 
   'projects.title': 'Proyek Saya',
   'projects.subtitle': 'Kumpulan proyek yang sudah aku kerjakan.',
+  'projects.all': 'Semua',
   'projects.search': 'Cari proyek...',
   'projects.noResults': 'Tidak ada hasil untuk "{q}".',
+  'projects.noResultsFilter': 'Tidak ada proyek yang cocok dengan filter ini.',
   'projects.empty': 'Belum ada proyek untuk ditampilkan.',
   'projects.detail': 'Lihat Detail →',
   'projects.fallback': 'Terjemahan bahasa Inggris belum tersedia. Menampilkan versi Indonesia.',
@@ -180,6 +185,9 @@ const enMessages: Record<MessageKey, string> = {
 
   'home.downloadCv': 'Download CV',
   'common.fallback': 'English translation is not available yet. Showing the Indonesian version.',
+  'view.label': 'View',
+  'view.alternating': 'Alternating',
+  'view.columns': '{n} columns',
   'notFound.message': 'The page you are looking for could not be found.',
   'notFound.home': 'Back to Home',
 
@@ -203,8 +211,10 @@ const enMessages: Record<MessageKey, string> = {
 
   'projects.title': 'My Projects',
   'projects.subtitle': 'A collection of projects I have worked on.',
+  'projects.all': 'All',
   'projects.search': 'Search projects...',
   'projects.noResults': 'No results for "{q}".',
+  'projects.noResultsFilter': 'No projects match this filter.',
   'projects.empty': 'No projects to show yet.',
   'projects.detail': 'View Details →',
   'projects.fallback': 'English translation is not available yet. Showing the Indonesian version.',

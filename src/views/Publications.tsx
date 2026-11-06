@@ -1,10 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Loader2, ExternalLink, BookOpen } from 'lucide-react';
+import { Loader2, ExternalLink, BookOpen, Columns2, Columns3, Rows3 } from 'lucide-react';
 import PaginationControls from '../components/PaginationControls';
 import SearchInput from '../components/SearchInput';
+import ViewToggle, { type ViewOption } from '../components/ViewToggle';
 import { usePagination } from '../hooks/usePagination';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useStoredState } from '../hooks/useStoredState';
+import { GRID_COLUMN_OPTIONS, gridClass, type GridColumns } from '../lib/grid';
 import { supabase } from '../lib/supabase';
 import { useLocale } from '../context/LocaleContext';
 import type { MessageKey } from '../lib/i18n';
@@ -25,8 +28,14 @@ export default function Publications() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [columns, setColumns] = useStoredState<GridColumns>('knowrise:publication-view', '1', GRID_COLUMN_OPTIONS);
   const pg = usePagination(10);
   const debounced = useDebouncedValue(search, 350);
+  const viewOptions: ViewOption<GridColumns>[] = [
+    { value: '1', label: t('view.columns', { n: 1 }), icon: Rows3 },
+    { value: '2', label: t('view.columns', { n: 2 }), icon: Columns2 },
+    { value: '3', label: t('view.columns', { n: 3 }), icon: Columns3 },
+  ];
 
   useEffect(() => {
     if (pg.page !== 1) pg.resetPage();
@@ -89,8 +98,9 @@ export default function Publications() {
       )}
 
       {!loading && (
-        <div className="mb-8">
-          <SearchInput value={search} onChange={setSearch} placeholder={t('pub.search')} className="max-w-md mx-auto" />
+        <div className="mb-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <SearchInput value={search} onChange={setSearch} placeholder={t('pub.search')} className="w-full sm:max-w-md" />
+          <ViewToggle value={columns} onChange={setColumns} options={viewOptions} label={t('view.label')} />
         </div>
       )}
 
@@ -104,11 +114,12 @@ export default function Publications() {
             : <p>{t('pub.empty')}</p>}
         </div>
       ) : (
-        <div className="space-y-4">
+        <>
+          <div className={gridClass(columns)}>
           {items.map((pub) => (
             <div
               key={pub.id}
-              className="p-5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5"
+              className="flex h-full flex-col p-5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5"
               style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}
               data-aos="fade-up"
             >
@@ -156,8 +167,9 @@ export default function Publications() {
               )}
             </div>
           ))}
+          </div>
           <PaginationControls page={pg.page} pageSize={pg.pageSize} total={pg.total} onChange={pg.setPage} />
-        </div>
+        </>
       )}
     </div>
   );
