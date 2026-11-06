@@ -242,6 +242,43 @@ body {
   max-width: 100%;
 }
 
+.rich-content .rich-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem;
+  margin: 1em 0;
+}
+
+.rich-content .rich-gallery a {
+  background: var(--tag-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 0.75rem;
+  cursor: zoom-in;
+  display: block;
+  line-height: 0;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.rich-content .rich-gallery img {
+  aspect-ratio: 1 / 1;
+  border-radius: 0;
+  display: block;
+  height: auto;
+  margin: 0;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+  width: 100%;
+}
+
+.rich-content .rich-gallery a:hover img {
+  transform: scale(1.04);
+}
+
+.rich-content.ProseMirror .rich-gallery a {
+  pointer-events: none;
+}
+
 .rich-content hr {
   border: 0;
   border-top: 1px solid var(--card-border);

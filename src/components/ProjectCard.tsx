@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { useLocale } from '../context/LocaleContext';
 import { projectTranslationAvailable } from '../lib/localized';
 import { renderRichContent } from '../lib/content';
+import RichContent from './RichContent';
 import type { ProjectCardProps } from '../types';
 
 export default function ProjectCard({ project, direction }: ProjectCardProps) {
@@ -38,9 +39,9 @@ export default function ProjectCard({ project, direction }: ProjectCardProps) {
         {!translationAvailable && (
           <p className="text-xs italic mb-2" style={{ color: 'var(--text-muted)' }}>{t('projects.fallback')}</p>
         )}
-        <div
+        <RichContent
           className="rich-content mb-4 text-sm md:text-base"
-          dangerouslySetInnerHTML={{ __html: renderRichContent(project.description, project.description_format) }}
+          html={renderRichContent(project.description, project.description_format)}
         />
 
         {/* Tags */}

@@ -1,4 +1,5 @@
 import { renderRichContent } from '../lib/content';
+import RichContent from './RichContent';
 import type { TimelineItemProps } from '../types';
 
 export default function TimelineItem({ title, period, company, url, description, descriptionFormat = 'markdown', fallbackMessage, direction }: TimelineItemProps) {
@@ -37,9 +38,9 @@ export default function TimelineItem({ title, period, company, url, description,
         {fallbackMessage && (
           <p className="text-[10px] italic mt-3" style={{ color: 'var(--text-muted)' }}>{fallbackMessage}</p>
         )}
-        <div
+        <RichContent
           className="rich-content text-sm mt-3"
-          dangerouslySetInnerHTML={{ __html: renderRichContent(description, descriptionFormat) }}
+          html={renderRichContent(description, descriptionFormat)}
         />
       </div>
     </div>

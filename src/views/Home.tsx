@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { useLocale } from '../context/LocaleContext';
 import { localizeProfile, profileTranslationAvailable } from '../lib/localized';
 import { renderRichContent } from '../lib/content';
+import RichContent from '../components/RichContent';
 import type { Profile } from '../types';
 
 // Static fallback
@@ -62,9 +63,9 @@ export default function Home() {
           {!translationAvailable && (
             <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>{t('common.fallback')}</p>
           )}
-          <div
+          <RichContent
             className="rich-content text-sm md:text-base"
-            dangerouslySetInnerHTML={{ __html: renderRichContent(localizedProfile.bio, localizedProfile.bio_format) }}
+            html={renderRichContent(localizedProfile.bio, localizedProfile.bio_format)}
           />
 
           {/* Social + CV */}

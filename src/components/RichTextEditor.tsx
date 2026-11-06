@@ -8,6 +8,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
 import {
   AlignCenter,
+  AlignJustify,
   AlignLeft,
   AlignRight,
   Bold,
@@ -26,6 +27,7 @@ import {
 } from 'lucide-react';
 import { prepareAndUploadFile } from '../lib/uploadImage';
 import { renderRichContent } from '../lib/content';
+import Gallery, { type GalleryImage } from './extensions/Gallery';
 import type { ContentFormat } from '../types';
 import type { MediaFolder } from '../lib/storage';
 
@@ -80,6 +82,7 @@ export default function RichTextEditor({
 }: RichTextEditorProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const lastValue = useRef(value);
+  const uploadingRef = useRef(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
@@ -94,6 +97,7 @@ export default function RichTextEditor({
         },
       }),
       Image.configure({ inline: false, allowBase64: false }),
+      Gallery,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Placeholder.configure({ placeholder }),
     ],
@@ -107,14 +111,14 @@ export default function RichTextEditor({
         const files = Array.from(event.dataTransfer?.files || []).filter((f) => f.type.startsWith('image/'));
         if (!files.length) return false;
         event.preventDefault();
-        files.forEach((file) => void uploadAndInsert(file));
+        void handleFiles(files);
         return true;
       },
       handlePaste: (_view, event) => {
         const files = Array.from(event.clipboardData?.files || []).filter((f) => f.type.startsWith('image/'));
         if (!files.length) return false;
         event.preventDefault();
-        files.forEach((file) => void uploadAndInsert(file));
+        void handleFiles(files);
         return true;
       },
     },
@@ -132,19 +136,47 @@ export default function RichTextEditor({
     editor.commands.setContent(html, { emitUpdate: false });
   }, [editor, value, format]);
 
-  async function uploadAndInsert(file: File) {
+  async function handleFiles(files: File[]) {
+    if (!files.length || !editor || uploadingRef.current) return;
+    uploadingRef.current = true;
     setError('');
     setUploading(true);
     try {
-      const { url, error: uploadError } = await prepareAndUploadFile(folder, file);
-      if (uploadError) {
-        setError(uploadError);
-      } else if (url && editor) {
-        editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+      const results = await Promise.all(
+        files.map(async (file) => {
+          try {
+            const { url, error: uploadError } = await prepareAndUploadFile(folder, file);
+            return { file, url, error: uploadError };
+          } catch (e) {
+            return {
+              file,
+              url: undefined,
+              error: e instanceof Error ? e.message : 'Upload gambar gagal.',
+            };
+          }
+        })
+      );
+
+      const uploaded: GalleryImage[] = [];
+      const failed: string[] = [];
+      for (const result of results) {
+        if (result.url) {
+          uploaded.push({ src: result.url, alt: result.file.name });
+        } else {
+          failed.push(`${result.file.name}: ${result.error || 'Upload gagal.'}`);
+        }
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upload gambar gagal.');
+
+      if (failed.length) setError(failed.join(' • '));
+      if (!uploaded.length) return;
+
+      if (uploaded.length > 1) {
+        editor.chain().focus().insertContent({ type: 'gallery', attrs: { images: uploaded } }).run();
+      } else {
+        editor.chain().focus().setImage({ src: uploaded[0].src, alt: uploaded[0].alt }).run();
+      }
     } finally {
+      uploadingRef.current = false;
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
     }
@@ -188,9 +220,10 @@ export default function RichTextEditor({
         <ToolbarButton title="Align left" active={editor.isActive({ textAlign: 'left' })} onClick={() => editor.chain().focus().setTextAlign('left').run()}><AlignLeft className="w-4 h-4" /></ToolbarButton>
         <ToolbarButton title="Align center" active={editor.isActive({ textAlign: 'center' })} onClick={() => editor.chain().focus().setTextAlign('center').run()}><AlignCenter className="w-4 h-4" /></ToolbarButton>
         <ToolbarButton title="Align right" active={editor.isActive({ textAlign: 'right' })} onClick={() => editor.chain().focus().setTextAlign('right').run()}><AlignRight className="w-4 h-4" /></ToolbarButton>
+        <ToolbarButton title="Justify" active={editor.isActive({ textAlign: 'justify' })} onClick={() => editor.chain().focus().setTextAlign('justify').run()}><AlignJustify className="w-4 h-4" /></ToolbarButton>
         {divider}
         <ToolbarButton title="Link" active={editor.isActive('link')} onClick={setLink}><LinkIcon className="w-4 h-4" /></ToolbarButton>
-        <ToolbarButton title="Upload gambar" disabled={uploading} onClick={() => fileRef.current?.click()}>
+        <ToolbarButton title="Upload gambar (bisa banyak)" disabled={uploading} onClick={() => fileRef.current?.click()}>
           {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
         </ToolbarButton>
         {divider}
@@ -205,8 +238,13 @@ export default function RichTextEditor({
         ref={fileRef}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadAndInsert(f); }}
+        onChange={(e) => {
+          const files = Array.from(e.target.files || []).filter((file) => file.type.startsWith('image/'));
+          if (files.length) void handleFiles(files);
+          else if (fileRef.current) fileRef.current.value = '';
+        }}
       />
 
       {error && <p className="px-3 py-2 text-xs text-red-500 border-t" style={{ borderColor: 'var(--card-border)' }}>{error}</p>}

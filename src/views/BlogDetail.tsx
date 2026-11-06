@@ -7,6 +7,7 @@ import { useLocale } from '../context/LocaleContext';
 import { dateLocale, localizePath } from '../lib/i18n';
 import { blogTranslationAvailable, localizeBlog } from '../lib/localized';
 import { estimateReadTime, renderRichContent } from '../lib/content';
+import RichContent from '../components/RichContent';
 import type { BlogPost } from '../types';
 
 export default function BlogDetail({ slug }: { slug: string }) {
@@ -152,10 +153,7 @@ export default function BlogDetail({ slug }: { slug: string }) {
       )}
 
       {/* Body — rendered rich content */}
-      <div
-        className="rich-content"
-        dangerouslySetInnerHTML={{ __html: htmlContent }}
-      />
+      <RichContent className="rich-content" html={htmlContent} />
     </article>
   );
 }

@@ -10,6 +10,7 @@ import { useLocale } from '../context/LocaleContext';
 import { dateLocale, type MessageKey } from '../lib/i18n';
 import { hkiTranslationAvailable, localizeHki } from '../lib/localized';
 import { renderRichContent } from '../lib/content';
+import RichContent from '../components/RichContent';
 import type { HkiEntry } from '../types';
 
 const TYPE_META: Record<string, { key: MessageKey; icon: string }> = {
@@ -124,9 +125,9 @@ export default function Hki() {
                     <p className="pt-1 text-[10px] italic" style={{ color: 'var(--text-muted)' }}>{t('hki.fallback')}</p>
                   )}
                   {item.description && (
-                    <div
+                    <RichContent
                       className="rich-content pt-1 text-sm"
-                      dangerouslySetInnerHTML={{ __html: renderRichContent(item.description, item.description_format) }}
+                      html={renderRichContent(item.description, item.description_format)}
                     />
                   )}
                 </div>

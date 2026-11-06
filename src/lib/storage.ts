@@ -37,7 +37,7 @@ export async function uploadFile(
   const extIndex = sanitized.lastIndexOf('.');
   const ext = extIndex >= 0 ? sanitized.slice(extIndex).toLowerCase() : '';
   const base = extIndex >= 0 ? sanitized.slice(0, extIndex) : sanitized;
-  const stamp = Date.now().toString(36);
+  const stamp = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   const path = `${folder}/${stamp}-${base}${ext}`;
 
   const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, {
