@@ -4,12 +4,15 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '../context/ThemeContext';
-import { MENU_KEYS, isMenuVisible, menuLabel } from '../lib/settings';
+import { MENU_KEYS, isMenuVisible } from '../lib/settings';
+import { useLocale } from '../context/LocaleContext';
+import { localizePath, type MessageKey } from '../lib/i18n';
 import type { MenuKey, Settings } from '../types';
 
 export default function Navbar({ settings }: { settings: Settings['data'] }) {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
+  const { locale, setLocale, t } = useLocale();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -30,8 +33,8 @@ export default function Navbar({ settings }: { settings: Settings['data'] }) {
   const visibleKeys: MenuKey[] = MENU_KEYS.filter((key) => isMenuVisible(settings, key));
 
   const links = visibleKeys.map((key) => ({
-    to: key === 'home' ? '/' : `/${key}`,
-    label: menuLabel(key),
+    to: localizePath(locale, key === 'home' ? '/' : `/${key}`),
+    label: t(`nav.${key}` as MessageKey),
   }));
 
   const isActive = (path: string) =>
@@ -45,12 +48,12 @@ export default function Navbar({ settings }: { settings: Settings['data'] }) {
     >
       <div className={`flex justify-between items-center transition-all duration-300 ${scrolled ? 'py-3' : 'py-5'}`}>
         {/* Brand */}
-        <Link href="/" className="flex flex-col leading-tight" onClick={() => setMenuOpen(false)}>
+        <Link href={localizePath(locale, '/')} className="flex flex-col leading-tight" onClick={() => setMenuOpen(false)}>
           <span className="text-xl font-bold font-montserrat" style={{ color: 'var(--text-primary)' }}>
             KnowRise
           </span>
           <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            Stay Positive and Be Yourself
+            {t('nav.brandTagline')}
           </span>
         </Link>
 
@@ -71,6 +74,19 @@ export default function Navbar({ settings }: { settings: Settings['data'] }) {
             </Link>
           ))}
           <button
+            onClick={() => setLocale(locale === 'id' ? 'en' : 'id')}
+            className="text-xs px-3 py-1 rounded-full border font-bold transition-colors duration-200"
+            style={{
+              background: 'var(--btn-inactive)',
+              borderColor: 'var(--card-border)',
+              color: 'var(--text-secondary)',
+            }}
+            aria-label={t('nav.toggleLanguage')}
+            title={t('nav.toggleLanguage')}
+          >
+            {locale === 'id' ? 'EN' : 'ID'}
+          </button>
+          <button
             onClick={toggleTheme}
             className="text-xs px-3 py-1 rounded-full border transition-colors duration-200"
             style={{
@@ -78,15 +94,27 @@ export default function Navbar({ settings }: { settings: Settings['data'] }) {
               borderColor: 'var(--card-border)',
               color: 'var(--text-secondary)',
             }}
-            aria-label="Toggle theme"
+            aria-label={t('nav.toggleTheme')}
           >
-            {theme === 'dark' ? '☀ Light' : '🌙 Dark'}
+            {theme === 'dark' ? `☀ ${t('nav.themeLight')}` : `🌙 ${t('nav.themeDark')}`}
           </button>
         </div>
 
         {/* Mobile hamburger */}
         <div className="flex md:hidden items-center gap-3">
           <button
+            onClick={() => setLocale(locale === 'id' ? 'en' : 'id')}
+            className="text-xs px-3 py-1 rounded-full border font-bold transition-colors duration-200"
+            style={{
+              background: 'var(--btn-inactive)',
+              borderColor: 'var(--card-border)',
+              color: 'var(--text-secondary)',
+            }}
+            aria-label={t('nav.toggleLanguage')}
+          >
+            {locale === 'id' ? 'EN' : 'ID'}
+          </button>
+          <button
             onClick={toggleTheme}
             className="text-xs px-3 py-1 rounded-full border transition-colors duration-200"
             style={{
@@ -94,13 +122,13 @@ export default function Navbar({ settings }: { settings: Settings['data'] }) {
               borderColor: 'var(--card-border)',
               color: 'var(--text-secondary)',
             }}
-            aria-label="Toggle theme"
+            aria-label={t('nav.toggleTheme')}
           >
             {theme === 'dark' ? '☀' : '🌙'}
           </button>
           <button
             onClick={() => setMenuOpen(o => !o)}
-            aria-label="Toggle menu"
+            aria-label={t('nav.toggleMenu')}
             className="p-1 rounded"
             style={{ color: 'var(--text-primary)' }}
           >

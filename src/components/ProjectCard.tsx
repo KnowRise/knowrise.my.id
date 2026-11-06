@@ -1,8 +1,13 @@
 import Image from 'next/image';
+import { useLocale } from '../context/LocaleContext';
+import { projectTranslationAvailable } from '../lib/localized';
+import { renderRichContent } from '../lib/content';
 import type { ProjectCardProps } from '../types';
 
 export default function ProjectCard({ project, direction }: ProjectCardProps) {
+  const { locale, t } = useLocale();
   const isRightImage = direction === 'right';
+  const translationAvailable = projectTranslationAvailable(project, locale);
 
   return (
     <div
@@ -30,9 +35,13 @@ export default function ProjectCard({ project, direction }: ProjectCardProps) {
         <h3 className="text-2xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
           {project.title}
         </h3>
-        <p className="mb-4 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          {project.description}
-        </p>
+        {!translationAvailable && (
+          <p className="text-xs italic mb-2" style={{ color: 'var(--text-muted)' }}>{t('projects.fallback')}</p>
+        )}
+        <div
+          className="rich-content mb-4 text-sm md:text-base"
+          dangerouslySetInnerHTML={{ __html: renderRichContent(project.description, project.description_format) }}
+        />
 
         {/* Tags */}
         <div className="flex flex-wrap gap-2 mb-4">
@@ -54,7 +63,7 @@ export default function ProjectCard({ project, direction }: ProjectCardProps) {
           className="font-semibold transition-opacity hover:opacity-75"
           style={{ color: 'var(--green)' }}
         >
-          Lihat Detail →
+          {t('projects.detail')}
         </a>
       </div>
     </div>

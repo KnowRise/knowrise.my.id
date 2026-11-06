@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import AdminSidebar from '../../../src/components/AdminSidebar';
 import AdminToast from '../../../src/components/AdminToast';
 import { supabase } from '../../../src/lib/supabase';
-import type { WorkExperience, Education } from '../../../src/types';
+import type { WorkExperience, Education, TranslationStatus } from '../../../src/types';
 import { usePagination } from '../../../src/hooks/usePagination';
 import { useDebouncedValue } from '../../../src/hooks/useDebouncedValue';
 import { useResourceControls } from '../../../src/hooks/useResourceControls';
@@ -11,6 +11,7 @@ import { bulkDeleteByIds } from '../../../src/lib/bulkDelete';
 import { nextSortOrder } from '../../../src/lib/sortOrder';
 import PaginationControls from '../../../src/components/PaginationControls';
 import AdminListToolbar from '../../../src/components/AdminListToolbar';
+import RichTextEditor from '../../../src/components/RichTextEditor';
 import { Plus, Trash2, Loader2, ArrowUpDown, ChevronDown, ChevronRight } from 'lucide-react';
 
 type Tab = 'work' | 'education';
@@ -79,6 +80,12 @@ export default function ExperienceAdmin() {
       company: 'New Company',
       company_url: '',
       description: 'Description here',
+      description_format: 'markdown',
+      title_en: null,
+      company_en: null,
+      description_en: null,
+      description_en_format: 'html',
+      translation_status: 'none',
       sort_order: newSortOrder
     }]).select().single();
     
@@ -98,6 +105,12 @@ export default function ExperienceAdmin() {
       institution: 'New Institution',
       institution_url: '',
       description: 'Description here',
+      description_format: 'markdown',
+      title_en: null,
+      institution_en: null,
+      description_en: null,
+      description_en_format: 'html',
+      translation_status: 'none',
       sort_order: newSortOrder
     }]).select().single();
     
@@ -338,8 +351,39 @@ export default function ExperienceAdmin() {
                             <input type="text" placeholder="Period (e.g. 2021 - Present)" className="col-span-1 px-3 py-1.5 rounded border bg-transparent text-sm" style={{ borderColor: 'var(--input-border)' }} value={item.period} onChange={e => setWork(work.map(w => w.id === item.id ? { ...w, period: e.target.value } : w))} onBlur={e => saveWorkChanges(item.id, { period: e.target.value })} />
                           </div>
                           <input type="url" placeholder="Company URL (Optional)" className="col-span-1 md:col-span-2 px-3 py-1.5 rounded border bg-transparent text-sm" style={{ borderColor: 'var(--input-border)' }} value={item.company_url || ''} onChange={e => setWork(work.map(w => w.id === item.id ? { ...w, company_url: e.target.value } : w))} onBlur={e => saveWorkChanges(item.id, { company_url: e.target.value })} />
+                          <input type="text" placeholder="Title (English)" className="col-span-1 px-3 py-1.5 rounded border bg-transparent text-sm font-bold" style={{ borderColor: 'var(--input-border)' }} value={item.title_en ?? ''} onChange={e => setWork(work.map(w => w.id === item.id ? { ...w, title_en: e.target.value } : w))} onBlur={e => saveWorkChanges(item.id, { title_en: e.target.value })} />
+                          <input type="text" placeholder="Company (English)" className="col-span-1 px-3 py-1.5 rounded border bg-transparent text-sm" style={{ borderColor: 'var(--input-border)' }} value={item.company_en ?? ''} onChange={e => setWork(work.map(w => w.id === item.id ? { ...w, company_en: e.target.value } : w))} onBlur={e => saveWorkChanges(item.id, { company_en: e.target.value })} />
                         </div>
-                        <textarea placeholder="Description" rows={2} className="w-full px-3 py-2 rounded border bg-transparent text-sm resize-none" style={{ borderColor: 'var(--input-border)' }} value={item.description} onChange={e => setWork(work.map(w => w.id === item.id ? { ...w, description: e.target.value } : w))} onBlur={e => saveWorkChanges(item.id, { description: e.target.value })} />
+
+                        <div onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) saveWorkChanges(item.id, { description: item.description, description_format: item.description_format, description_en: item.description_en, description_en_format: item.description_en_format }); }}>
+                          <label className="text-[10px] uppercase font-bold text-(--text-muted) tracking-wider">Description (ID)</label>
+                          <RichTextEditor
+                            value={item.description}
+                            format={item.description_format ?? 'markdown'}
+                            onChange={(html) => setWork(work.map(w => w.id === item.id ? { ...w, description: html, description_format: 'html' } : w))}
+                            folder="content"
+                            minHeight={140}
+                          />
+                          <label className="text-[10px] uppercase font-bold text-(--text-muted) tracking-wider mt-3 block">Description (EN)</label>
+                          <RichTextEditor
+                            value={item.description_en ?? ''}
+                            format={item.description_en_format ?? 'html'}
+                            onChange={(html) => setWork(work.map(w => w.id === item.id ? { ...w, description_en: html, description_en_format: 'html' } : w))}
+                            folder="content"
+                            minHeight={140}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] uppercase font-bold text-(--text-muted) tracking-wider">Translation Status</label>
+                          <select className="w-full px-3 py-1.5 rounded border bg-transparent text-sm" style={{ borderColor: 'var(--input-border)' }}
+                            value={item.translation_status ?? 'none'}
+                            onChange={e => { const value = e.target.value as TranslationStatus; setWork(work.map(w => w.id === item.id ? { ...w, translation_status: value } : w)); saveWorkChanges(item.id, { translation_status: value }); }}>
+                            <option value="none">None (show Indonesian)</option>
+                            <option value="draft">Draft</option>
+                            <option value="published">Published</option>
+                          </select>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -423,8 +467,39 @@ export default function ExperienceAdmin() {
                             <input type="text" placeholder="Period (e.g. 2021 - 2025)" className="col-span-1 px-3 py-1.5 rounded border bg-transparent text-sm" style={{ borderColor: 'var(--input-border)' }} value={item.period} onChange={e => setEdu(edu.map(w => w.id === item.id ? { ...w, period: e.target.value } : w))} onBlur={e => saveEduChanges(item.id, { period: e.target.value })} />
                           </div>
                           <input type="url" placeholder="Institution URL (Optional)" className="col-span-1 md:col-span-2 px-3 py-1.5 rounded border bg-transparent text-sm" style={{ borderColor: 'var(--input-border)' }} value={item.institution_url || ''} onChange={e => setEdu(edu.map(w => w.id === item.id ? { ...w, institution_url: e.target.value } : w))} onBlur={e => saveEduChanges(item.id, { institution_url: e.target.value })} />
+                          <input type="text" placeholder="Degree / Title (English)" className="col-span-1 px-3 py-1.5 rounded border bg-transparent text-sm font-bold" style={{ borderColor: 'var(--input-border)' }} value={item.title_en ?? ''} onChange={e => setEdu(edu.map(w => w.id === item.id ? { ...w, title_en: e.target.value } : w))} onBlur={e => saveEduChanges(item.id, { title_en: e.target.value })} />
+                          <input type="text" placeholder="Institution (English)" className="col-span-1 px-3 py-1.5 rounded border bg-transparent text-sm" style={{ borderColor: 'var(--input-border)' }} value={item.institution_en ?? ''} onChange={e => setEdu(edu.map(w => w.id === item.id ? { ...w, institution_en: e.target.value } : w))} onBlur={e => saveEduChanges(item.id, { institution_en: e.target.value })} />
                         </div>
-                        <textarea placeholder="Description" rows={2} className="w-full px-3 py-2 rounded border bg-transparent text-sm resize-none" style={{ borderColor: 'var(--input-border)' }} value={item.description} onChange={e => setEdu(edu.map(w => w.id === item.id ? { ...w, description: e.target.value } : w))} onBlur={e => saveEduChanges(item.id, { description: e.target.value })} />
+
+                        <div onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) saveEduChanges(item.id, { description: item.description, description_format: item.description_format, description_en: item.description_en, description_en_format: item.description_en_format }); }}>
+                          <label className="text-[10px] uppercase font-bold text-(--text-muted) tracking-wider">Description (ID)</label>
+                          <RichTextEditor
+                            value={item.description}
+                            format={item.description_format ?? 'markdown'}
+                            onChange={(html) => setEdu(edu.map(w => w.id === item.id ? { ...w, description: html, description_format: 'html' } : w))}
+                            folder="content"
+                            minHeight={140}
+                          />
+                          <label className="text-[10px] uppercase font-bold text-(--text-muted) tracking-wider mt-3 block">Description (EN)</label>
+                          <RichTextEditor
+                            value={item.description_en ?? ''}
+                            format={item.description_en_format ?? 'html'}
+                            onChange={(html) => setEdu(edu.map(w => w.id === item.id ? { ...w, description_en: html, description_en_format: 'html' } : w))}
+                            folder="content"
+                            minHeight={140}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] uppercase font-bold text-(--text-muted) tracking-wider">Translation Status</label>
+                          <select className="w-full px-3 py-1.5 rounded border bg-transparent text-sm" style={{ borderColor: 'var(--input-border)' }}
+                            value={item.translation_status ?? 'none'}
+                            onChange={e => { const value = e.target.value as TranslationStatus; setEdu(edu.map(w => w.id === item.id ? { ...w, translation_status: value } : w)); saveEduChanges(item.id, { translation_status: value }); }}>
+                            <option value="none">None (show Indonesian)</option>
+                            <option value="draft">Draft</option>
+                            <option value="published">Published</option>
+                          </select>
+                        </div>
                       </div>
                     )}
                   </div>

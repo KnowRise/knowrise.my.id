@@ -6,21 +6,24 @@ import SearchInput from '../components/SearchInput';
 import { usePagination } from '../hooks/usePagination';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { supabase } from '../lib/supabase';
+import { useLocale } from '../context/LocaleContext';
+import type { MessageKey } from '../lib/i18n';
 import type { Publication } from '../types';
 
-const TYPE_LABELS: Record<string, string> = {
-  journal: 'Jurnal',
-  conference: 'Konferensi',
-  proceeding: 'Prosiding',
-  book: 'Buku',
+const TYPE_KEYS: Record<string, MessageKey> = {
+  journal: 'pub.journal',
+  conference: 'pub.conference',
+  proceeding: 'pub.proceeding',
+  book: 'pub.book',
 };
 
-const FILTERS = ['Semua', 'journal', 'conference', 'proceeding', 'book'];
+const FILTERS = ['all', 'journal', 'conference', 'proceeding', 'book'];
 
 export default function Publications() {
+  const { t } = useLocale();
   const [items, setItems] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('Semua');
+  const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const pg = usePagination(10);
   const debounced = useDebouncedValue(search, 350);
@@ -35,7 +38,7 @@ export default function Publications() {
     setLoading(true);
     if (supabase) {
       let query: any = supabase.from('publications').select('*', { count: 'exact' });
-      if (filter !== 'Semua') query = query.eq('type', filter);
+      if (filter !== 'all') query = query.eq('type', filter);
       const term = debounced.trim();
       if (term) {
         const esc = term.replace(/[%_]/g, (m) => '\\' + m);
@@ -60,10 +63,10 @@ export default function Publications() {
   return (
     <div className="py-14 page-in">
       <h1 className="text-3xl font-bold font-montserrat text-center mb-3" style={{ color: 'var(--text-primary)' }}>
-        Publikasi Ilmiah
+        {t('pub.title')}
       </h1>
       <p className="text-center mb-10 text-sm" style={{ color: 'var(--text-secondary)' }}>
-        Karya ilmiah yang terbit di jurnal, konferensi, dan prosiding.
+        {t('pub.subtitle')}
       </p>
 
       {!loading && pg.total > 0 && (
@@ -79,7 +82,7 @@ export default function Publications() {
                 borderColor: filter === f ? 'var(--btn-active)' : 'var(--card-border)',
               }}
             >
-              {f === 'Semua' ? 'Semua' : TYPE_LABELS[f]}
+              {f === 'all' ? t('pub.all') : t(TYPE_KEYS[f])}
             </button>
           ))}
         </div>
@@ -87,7 +90,7 @@ export default function Publications() {
 
       {!loading && (
         <div className="mb-8">
-          <SearchInput value={search} onChange={setSearch} placeholder="Cari judul/penulis/venue..." className="max-w-md mx-auto" />
+          <SearchInput value={search} onChange={setSearch} placeholder={t('pub.search')} className="max-w-md mx-auto" />
         </div>
       )}
 
@@ -96,9 +99,9 @@ export default function Publications() {
       ) : items.length === 0 ? (
         <div className="text-center py-16" style={{ color: 'var(--text-muted)' }}>
           <BookOpen className="w-10 h-10 mx-auto mb-3" />
-          {search.trim() || filter !== 'Semua'
-            ? <p>Tidak ada hasil untuk pencarian ini.</p>
-            : <p>Belum ada publikasi untuk ditampilkan.</p>}
+          {search.trim() || filter !== 'all'
+            ? <p>{t('pub.noResults')}</p>
+            : <p>{t('pub.empty')}</p>}
         </div>
       ) : (
         <div className="space-y-4">
@@ -125,7 +128,7 @@ export default function Publications() {
 
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: 'var(--tag-bg)', color: 'var(--text-secondary)' }}>
-                  {TYPE_LABELS[pub.type] || pub.type}
+                  {TYPE_KEYS[pub.type] ? t(TYPE_KEYS[pub.type]) : pub.type}
                 </span>
                 <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{pub.venue}</span>
                 {pub.index_type && (
@@ -140,13 +143,13 @@ export default function Publications() {
                   {pub.doi_url && (
                     <a href={pub.doi_url} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1.5 hover:opacity-80 transition-opacity" style={{ color: 'var(--green)' }}>
-                      <ExternalLink className="w-3.5 h-3.5" /> DOI
+                      <ExternalLink className="w-3.5 h-3.5" /> {t('pub.doi')}
                     </a>
                   )}
                   {pub.url && (
                     <a href={pub.url} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1.5 hover:opacity-80 transition-opacity" style={{ color: 'var(--green)' }}>
-                      <ExternalLink className="w-3.5 h-3.5" /> Baca Paper
+                      <ExternalLink className="w-3.5 h-3.5" /> {t('pub.readPaper')}
                     </a>
                   )}
                 </div>

@@ -1,5 +1,7 @@
 'use client';
 
+import { useLocale } from '../context/LocaleContext';
+
 interface PaginationControlsProps {
   page: number;
   pageSize: number;
@@ -8,11 +10,13 @@ interface PaginationControlsProps {
 }
 
 export default function PaginationControls({ page, pageSize, total, onChange }: PaginationControlsProps) {
+  const { t } = useLocale();
+  const itemLabel = total === 1 ? 'item' : t('pagination.item');
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   if (totalPages <= 1) {
     return (
       <div className="pt-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
-        {total} item{total !== 1 ? 's' : ''}
+        {total} {itemLabel}
       </div>
     );
   }
@@ -47,7 +51,7 @@ export default function PaginationControls({ page, pageSize, total, onChange }: 
         disabled={page <= 1}
         onClick={() => onChange(Math.max(1, page - 1))}
       >
-        ‹ Prev
+        {t('pagination.prev')}
       </button>
 
       {pages.map((p, idx) =>
@@ -71,11 +75,11 @@ export default function PaginationControls({ page, pageSize, total, onChange }: 
         disabled={page >= totalPages}
         onClick={() => onChange(Math.min(totalPages, page + 1))}
       >
-        Next ›
+        {t('pagination.next')}
       </button>
 
       <span className="ml-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-        {total} item{total !== 1 ? 's' : ''}
+        {total} {itemLabel}
       </span>
     </div>
   );

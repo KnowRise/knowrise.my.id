@@ -2,11 +2,15 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { marked } from 'marked';
 import { supabase } from '../lib/supabase';
+import { useLocale } from '../context/LocaleContext';
+import { dateLocale, localizePath } from '../lib/i18n';
+import { blogTranslationAvailable, localizeBlog } from '../lib/localized';
+import { estimateReadTime, renderRichContent } from '../lib/content';
 import type { BlogPost } from '../types';
 
 export default function BlogDetail({ slug }: { slug: string }) {
+  const { locale, t } = useLocale();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -19,15 +23,32 @@ export default function BlogDetail({ slug }: { slug: string }) {
       const { data } = await supabase
         .from('blogs')
         .select('*')
-        .eq('slug', slug)
         .eq('is_published', true)
-        .single();
-      if (data) setPost(data as BlogPost);
-      else setNotFound(true);
+        .eq('slug', slug)
+        .maybeSingle();
+
+      if (data) {
+        setPost(localizeBlog(data as BlogPost, locale));
+      } else if (locale === 'en') {
+        const { data: translated, error: translatedError } = await supabase
+          .from('blogs')
+          .select('*')
+          .eq('is_published', true)
+          .eq('slug_en', slug)
+          .maybeSingle();
+
+        if (!translatedError && translated) {
+          setPost(localizeBlog(translated as BlogPost, locale));
+        } else {
+          setNotFound(true);
+        }
+      } else {
+        setNotFound(true);
+      }
       setLoading(false);
     }
     fetchPost();
-  }, [slug]);
+  }, [slug, locale]);
 
   if (loading) {
     return (
@@ -49,41 +70,41 @@ export default function BlogDetail({ slug }: { slug: string }) {
       <div className="py-14 text-center page-in">
         <p className="text-5xl mb-4">🔍</p>
         <h2 className="text-xl font-bold font-montserrat mb-2" style={{ color: 'var(--text-primary)' }}>
-          Artikel tidak ditemukan
+          {t('blog.notFoundTitle')}
         </h2>
         <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-          Mungkin artikel ini belum dipublish atau slug-nya salah.
+          {t('blog.notFoundDesc')}
         </p>
         <Link
-          href="/blog"
+          href={localizePath(locale, '/blog')}
           className="text-sm font-semibold"
           style={{ color: 'var(--green)' }}
         >
-          ← Kembali ke Blog
+          {t('blog.notFoundLink')}
         </Link>
       </div>
     );
   }
 
   const date = post.published_at
-    ? new Date(post.published_at).toLocaleDateString('id-ID', {
+    ? new Date(post.published_at).toLocaleDateString(dateLocale(locale), {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
       })
     : null;
 
-  const wordCount = post.content.split(' ').length;
-  const readTime = Math.max(1, Math.round(wordCount / 200));
-  const htmlContent = marked.parse(post.content) as string;
+  const readTime = estimateReadTime(post.content, post.content_format);
+  const htmlContent = renderRichContent(post.content, post.content_format);
+  const translationAvailable = blogTranslationAvailable(post, locale);
 
   return (
     <article className="py-14 page-in max-w-2xl mx-auto">
       {/* Back */}
       <Link
-        href="/blog"
+        href={localizePath(locale, '/blog')}
         className="inline-flex items-center gap-1 text-sm mb-6 transition-colors hover:text-(--green)"
         style={{ color: 'var(--text-muted)' }}
       >
-        ← Kembali ke Blog
+        {t('blog.back')}
       </Link>
 
       {/* Cover image */}
@@ -108,7 +129,7 @@ export default function BlogDetail({ slug }: { slug: string }) {
       <div className="flex flex-wrap gap-3 items-center mb-4 text-xs" style={{ color: 'var(--text-muted)' }}>
         {date && <span>{date}</span>}
         <span>·</span>
-        <span>{readTime} menit baca</span>
+        <span>{t('blog.readTime', { n: readTime })}</span>
       </div>
 
       {/* Tags */}
@@ -126,10 +147,13 @@ export default function BlogDetail({ slug }: { slug: string }) {
         </div>
       )}
 
-      {/* Body — rendered Markdown */}
+      {!translationAvailable && (
+        <p className="text-xs italic mb-4" style={{ color: 'var(--text-muted)' }}>{t('blog.fallback')}</p>
+      )}
+
+      {/* Body — rendered rich content */}
       <div
-        className="prose prose-sm max-w-none leading-relaxed"
-        style={{ color: 'var(--text-secondary)' }}
+        className="rich-content"
         dangerouslySetInnerHTML={{ __html: htmlContent }}
       />
     </article>

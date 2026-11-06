@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import AdminSidebar from '../../../src/components/AdminSidebar';
 import AdminToast from '../../../src/components/AdminToast';
 import FileUploader from '../../../src/components/FileUploader';
+import RichTextEditor from '../../../src/components/RichTextEditor';
 import { supabase } from '../../../src/lib/supabase';
-import type { HkiEntry } from '../../../src/types';
+import type { HkiEntry, TranslationStatus } from '../../../src/types';
 import { usePagination } from '../../../src/hooks/usePagination';
 import { useDebouncedValue } from '../../../src/hooks/useDebouncedValue';
 import { useResourceControls } from '../../../src/hooks/useResourceControls';
@@ -60,6 +61,13 @@ export default function HkiAdmin() {
       holder: '',
       grant_date: null,
       description: '',
+      description_format: 'markdown',
+      title_en: null,
+      description_en: null,
+      description_en_format: 'html',
+      status_en: null,
+      holder_en: null,
+      translation_status: 'none',
       document_url: '',
       url: '',
       sort_order: newSortOrder
@@ -244,6 +252,10 @@ export default function HkiAdmin() {
                           value={item.title} onChange={e => patch(item.id, 'title', e.target.value)}
                           onBlur={e => saveChanges(item.id, { title: e.target.value })} />
 
+                        <input type="text" placeholder="Title (English)" className={`${inputCls} font-bold`} style={{ borderColor: 'var(--input-border)' }}
+                          value={item.title_en ?? ''} onChange={e => patch(item.id, 'title_en', e.target.value)}
+                          onBlur={e => saveChanges(item.id, { title_en: e.target.value })} />
+
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           <div>
                             <label className={labelCls}>Jenis</label>
@@ -273,13 +285,78 @@ export default function HkiAdmin() {
                           </div>
                         </div>
 
-                        <input type="text" placeholder="Pemegang / Atas nama (opsional)" className={inputCls} style={{ borderColor: 'var(--input-border)' }}
-                          value={item.holder || ''} onChange={e => patch(item.id, 'holder', e.target.value)}
-                          onBlur={e => saveChanges(item.id, { holder: e.target.value })} />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <input type="text" placeholder="Pemegang / Atas nama (opsional)" className={inputCls} style={{ borderColor: 'var(--input-border)' }}
+                            value={item.holder || ''} onChange={e => patch(item.id, 'holder', e.target.value)}
+                            onBlur={e => saveChanges(item.id, { holder: e.target.value })} />
+                          <input type="text" placeholder="Holder (English)" className={inputCls} style={{ borderColor: 'var(--input-border)' }}
+                            value={item.holder_en ?? ''} onChange={e => patch(item.id, 'holder_en', e.target.value)}
+                            onBlur={e => saveChanges(item.id, { holder_en: e.target.value })} />
+                          <input type="text" placeholder="Status (English)" className={inputCls} style={{ borderColor: 'var(--input-border)' }}
+                            value={item.status_en ?? ''} onChange={e => patch(item.id, 'status_en', e.target.value)}
+                            onBlur={e => saveChanges(item.id, { status_en: e.target.value })} />
+                        </div>
 
-                        <textarea placeholder="Deskripsi singkat (opsional)" rows={2} className={`${inputCls} resize-none`} style={{ borderColor: 'var(--input-border)' }}
-                          value={item.description || ''} onChange={e => patch(item.id, 'description', e.target.value)}
-                          onBlur={e => saveChanges(item.id, { description: e.target.value })} />
+                        <div>
+                          <label className={labelCls}>Description (ID)</label>
+                          <div
+                            className="mt-1"
+                            onBlur={(e) => {
+                              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                saveChanges(item.id, {
+                                  description: item.description,
+                                  description_format: item.description_format,
+                                  description_en: item.description_en,
+                                  description_en_format: item.description_en_format,
+                                });
+                              }
+                            }}
+                          >
+                            <RichTextEditor
+                              value={item.description ?? ''}
+                              format={item.description_format ?? 'markdown'}
+                              onChange={(html) => setItems(items.map(i => i.id === item.id ? { ...i, description: html, description_format: 'html' } : i))}
+                              folder="hki"
+                              minHeight={140}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className={labelCls}>Description (EN)</label>
+                          <div
+                            className="mt-1"
+                            onBlur={(e) => {
+                              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                saveChanges(item.id, {
+                                  description: item.description,
+                                  description_format: item.description_format,
+                                  description_en: item.description_en,
+                                  description_en_format: item.description_en_format,
+                                });
+                              }
+                            }}
+                          >
+                            <RichTextEditor
+                              value={item.description_en ?? ''}
+                              format={item.description_en_format ?? 'html'}
+                              onChange={(html) => setItems(items.map(i => i.id === item.id ? { ...i, description_en: html, description_en_format: 'html' } : i))}
+                              folder="hki"
+                              minHeight={140}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className={labelCls}>Translation Status</label>
+                          <select className={inputCls} style={{ borderColor: 'var(--input-border)' }}
+                            value={item.translation_status ?? 'none'}
+                            onChange={e => { const value = e.target.value as TranslationStatus; patch(item.id, 'translation_status', value); saveChanges(item.id, { translation_status: value }); }}>
+                            <option value="none">None (show Indonesian)</option>
+                            <option value="draft">Draft</option>
+                            <option value="published">Published</option>
+                          </select>
+                        </div>
 
                         <input type="url" placeholder="Link eksternal (opsional)" className={inputCls} style={{ borderColor: 'var(--input-border)' }}
                           value={item.url || ''} onChange={e => patch(item.id, 'url', e.target.value)}

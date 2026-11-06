@@ -7,12 +7,14 @@ import SearchInput from '../components/SearchInput';
 import { usePagination } from '../hooks/usePagination';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { supabase } from '../lib/supabase';
+import { useLocale } from '../context/LocaleContext';
 import type { Skill } from '../types';
 
 // Static fallback data disabled since categories are dynamic from DB now.
 const STATIC_SKILLS: { categoryName: string, skills: Skill[] }[] = [];
 
 export default function Skills() {
+  const { t } = useLocale();
   const [groupedSkills, setGroupedSkills] = useState<{ categoryName: string, skills: Skill[] }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -81,15 +83,15 @@ export default function Skills() {
   return (
     <div className="py-14 page-in">
       <h1 className="text-3xl font-bold font-montserrat text-center mb-3" style={{ color: 'var(--text-primary)' }}>
-        Skills &amp; Tech Stack
+        {t('skills.title')}
       </h1>
       <p className="text-center mb-10 text-sm" style={{ color: 'var(--text-secondary)' }}>
-        Technologies I work with day-to-day, and what I'm currently learning.
+        {t('skills.subtitle')}
       </p>
 
       {!loading && (
         <div className="mb-10">
-          <SearchInput value={search} onChange={setSearch} placeholder="Cari kategori atau skill..." className="max-w-md mx-auto" />
+          <SearchInput value={search} onChange={setSearch} placeholder={t('skills.search')} className="max-w-md mx-auto" />
         </div>
       )}
 
@@ -97,7 +99,7 @@ export default function Skills() {
         <LoadingSkeleton type="card" count={4} />
       ) : groupedSkills.length === 0 ? (
         <p className="text-center py-16" style={{ color: 'var(--text-muted)' }}>
-          {search.trim() ? `Tidak ada hasil untuk "${search}".` : 'Belum ada skill untuk ditampilkan.'}
+          {search.trim() ? t('skills.noResults', { q: search }) : t('skills.empty')}
         </p>
       ) : (
         <div>

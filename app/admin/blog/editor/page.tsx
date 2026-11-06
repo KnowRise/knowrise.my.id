@@ -4,25 +4,37 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import AdminSidebar from '../../../../src/components/AdminSidebar';
 import AdminToast from '../../../../src/components/AdminToast';
 import FileUploader from '../../../../src/components/FileUploader';
+import RichTextEditor from '../../../../src/components/RichTextEditor';
 import { supabase } from '../../../../src/lib/supabase';
-import type { BlogPost } from '../../../../src/types';
+import type { BlogPost, TranslationStatus } from '../../../../src/types';
 import { Save, Loader2, ArrowLeft, Image as ImageIcon, FileText, Tag } from 'lucide-react';
 import Link from 'next/link';
+
+const EMPTY_POST: Partial<BlogPost> = {
+  title: '',
+  slug: '',
+  content: '',
+  content_format: 'html',
+  excerpt: '',
+  cover_url: '',
+  tags: [],
+  is_published: false,
+  title_en: '',
+  slug_en: '',
+  content_en: '',
+  content_en_format: 'html',
+  excerpt_en: '',
+  tags_en: [],
+  translation_status: 'none',
+};
 
 function BlogEditorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams?.get('id');
 
-  const [post, setPost] = useState<Partial<BlogPost>>({
-    title: '',
-    slug: '',
-    content: '',
-    excerpt: '',
-    cover_url: '',
-    tags: [],
-    is_published: false
-  });
+  const [post, setPost] = useState<Partial<BlogPost>>(EMPTY_POST);
+  const [editLocale, setEditLocale] = useState<'id' | 'en'>('id');
   const [loading, setLoading] = useState(!!id);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{msg: string, type: 'success'|'error'|'loading'|null}>({ msg: '', type: null });
@@ -41,8 +53,7 @@ function BlogEditorContent() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) return;
-    
-    // Auto-generate slug if empty
+
     let finalSlug = post.slug;
     if (!finalSlug && post.title) {
        finalSlug = post.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
@@ -59,10 +70,12 @@ function BlogEditorContent() {
     const payload = {
        ...post,
        slug: finalSlug,
-       // Set saat pertama kali dipublish, pertahankan kalau sudah ada.
-       // Tanpa ini post yang dipublish dari editor punya published_at NULL,
-       // yang diurutkan paling atas di Blog.tsx (Postgres NULLS FIRST) dan
-       // tanggalnya tidak tampil di card.
+       slug_en: post.slug_en?.trim() || null,
+       title_en: post.title_en?.trim() || null,
+       excerpt_en: post.excerpt_en?.trim() || null,
+       content_en: post.content_en?.trim() || null,
+       tags_en: post.tags_en?.filter(Boolean) ?? [],
+       translation_status: (post.translation_status ?? 'none') as TranslationStatus,
        published_at: post.is_published ? (post.published_at || new Date().toISOString()) : null,
        updated_at: new Date().toISOString()
     };
@@ -90,30 +103,46 @@ function BlogEditorContent() {
     <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-(--green)" /></div>
   );
 
+  const isEn = editLocale === 'en';
+  const title = isEn ? (post.title_en ?? '') : (post.title ?? '');
+  const content = isEn ? (post.content_en ?? '') : (post.content ?? '');
+  const contentFormat = isEn ? (post.content_en_format ?? 'html') : (post.content_format ?? 'markdown');
+  const excerpt = isEn ? (post.excerpt_en ?? '') : (post.excerpt ?? '');
+  const tags = isEn ? (post.tags_en ?? []) : (post.tags ?? []);
+
+  const setTitle = (value: string) => setPost({ ...post, [isEn ? 'title_en' : 'title']: value });
+  const setContent = (value: string) => setPost({
+    ...post,
+    [isEn ? 'content_en' : 'content']: value,
+    [isEn ? 'content_en_format' : 'content_format']: 'html',
+  });
+  const setExcerpt = (value: string) => setPost({ ...post, [isEn ? 'excerpt_en' : 'excerpt']: value });
+  const setTags = (value: string[]) => setPost({ ...post, [isEn ? 'tags_en' : 'tags']: value });
+
   return (
     <div className="animate-in fade-in duration-500 max-w-5xl mx-auto pb-20">
       <AdminToast message={toast.msg} type={toast.type} onClose={() => setToast({ msg: '', type: null })} />
-      
+
       <header className="flex items-center gap-4 mb-8">
          <Link href="/admin/blog" className="p-2 rounded-lg border hover:bg-black/5 transition-colors" style={{ borderColor: 'var(--card-border)', color: 'var(--text-secondary)' }}>
            <ArrowLeft className="w-5 h-5" />
          </Link>
          <div>
            <h1 className="text-2xl font-bold font-montserrat">{id ? 'Edit Post' : 'Write New Post'}</h1>
-           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Use Markdown for content styling.</p>
+           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Rich text with inline images. Legacy Markdown remains supported.</p>
          </div>
-         
+
          <div className="ml-auto flex items-center gap-4">
             <label className="flex items-center gap-2 text-sm font-bold cursor-pointer">
-              <input 
-                 type="checkbox" 
-                 checked={post.is_published} 
+              <input
+                 type="checkbox"
+                 checked={post.is_published}
                  onChange={e => setPost({...post, is_published: e.target.checked})}
                  className="w-4 h-4 rounded border-gray-300 text-(--green) focus:ring-(--green)"
               />
               Publish immediately?
             </label>
-            <button 
+            <button
               onClick={handleSave}
               disabled={saving}
               className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm bg-(--btn-active) text-(--btn-active-text) hover:opacity-90 font-bold transition-opacity disabled:opacity-50"
@@ -125,28 +154,47 @@ function BlogEditorContent() {
       </header>
 
       <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         
+
          {/* Left Col: Content */}
          <div className="lg:col-span-2 space-y-6">
+            <div className="flex gap-1 p-1 rounded-xl border w-fit" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
+              {(['id', 'en'] as const).map((lang) => (
+                <button
+                  key={lang}
+                  type="button"
+                  onClick={() => setEditLocale(lang)}
+                  className="px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors"
+                  style={{
+                    background: editLocale === lang ? 'var(--btn-active)' : 'transparent',
+                    color: editLocale === lang ? 'var(--btn-active-text)' : 'var(--text-secondary)',
+                  }}
+                >
+                  {lang === 'id' ? 'Indonesia' : 'English'}
+                </button>
+              ))}
+            </div>
+
             <div className="p-1 rounded-2xl border" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
-               <input 
-                 type="text" 
-                 placeholder="Post Title..." 
-                 required
-                 value={post.title}
-                 onChange={e => setPost({...post, title: e.target.value})}
+               <input
+                 type="text"
+                 placeholder={isEn ? 'English post title...' : 'Judul postingan...'}
+                 required={!isEn}
+                 value={title}
+                 onChange={e => setTitle(e.target.value)}
                  className="w-full px-5 py-4 text-2xl font-bold font-montserrat bg-transparent border-b outline-none"
                  style={{ borderColor: 'var(--card-border)' }}
                />
-               <textarea 
-                 placeholder="Write your markdown content here..." 
-                 required
-                 rows={25}
-                 value={post.content}
-                 onChange={e => setPost({...post, content: e.target.value})}
-                 className="w-full px-5 py-4 bg-transparent outline-none font-mono text-sm resize-y"
-                 style={{ minHeight: '500px' }}
-               />
+               <div className="p-3">
+                 <RichTextEditor
+                   key={editLocale}
+                   value={content}
+                   format={contentFormat}
+                   onChange={setContent}
+                   folder="blogs"
+                   placeholder={isEn ? 'Write the English content here...' : 'Tulis konten di sini...'}
+                   minHeight={480}
+                 />
+               </div>
             </div>
          </div>
 
@@ -154,11 +202,11 @@ function BlogEditorContent() {
          <div className="space-y-6">
             <div className="p-5 rounded-2xl border space-y-5" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
                <h3 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}><FileText className="w-4 h-4" /> Meta Info</h3>
-               
+
                <div>
-                 <label className="block text-xs font-bold mb-1.5" style={{ color: 'var(--text-secondary)' }}>URL Slug</label>
-                 <input 
-                   type="text" 
+                 <label className="block text-xs font-bold mb-1.5" style={{ color: 'var(--text-secondary)' }}>URL Slug (ID)</label>
+                 <input
+                   type="text"
                    value={post.slug}
                    onChange={e => setPost({...post, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})}
                    placeholder="leave-blank-to-auto-generate"
@@ -168,11 +216,23 @@ function BlogEditorContent() {
                </div>
 
                <div>
-                 <label className="block text-xs font-bold mb-1.5" style={{ color: 'var(--text-secondary)' }}>Short Excerpt</label>
-                 <textarea 
+                 <label className="block text-xs font-bold mb-1.5" style={{ color: 'var(--text-secondary)' }}>URL Slug (EN)</label>
+                 <input
+                   type="text"
+                   value={post.slug_en ?? ''}
+                   onChange={e => setPost({...post, slug_en: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})}
+                   placeholder="english-post-slug"
+                   className="w-full px-3 py-2 rounded-lg border bg-transparent text-sm outline-none focus:border-(--green)"
+                   style={{ borderColor: 'var(--input-border)' }}
+                 />
+               </div>
+
+               <div>
+                 <label className="block text-xs font-bold mb-1.5" style={{ color: 'var(--text-secondary)' }}>Short Excerpt ({isEn ? 'EN' : 'ID'})</label>
+                 <textarea
                    rows={3}
-                   value={post.excerpt || ''}
-                   onChange={e => setPost({...post, excerpt: e.target.value})}
+                   value={excerpt}
+                   onChange={e => setExcerpt(e.target.value)}
                    placeholder="Brief summary for cards..."
                    className="w-full px-3 py-2 rounded-lg border bg-transparent text-sm outline-none focus:border-(--green) resize-none"
                    style={{ borderColor: 'var(--input-border)' }}
@@ -180,21 +240,36 @@ function BlogEditorContent() {
                </div>
 
                <div>
-                 <label className="block text-xs font-bold mb-1.5 flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}><Tag className="w-3 h-3"/> Tags (Comma Separated)</label>
-                 <input 
-                   type="text" 
-                   value={(post.tags || []).join(', ')}
-                   onChange={e => setPost({...post, tags: e.target.value.split(',').map(t=>t.trim())})}
+                 <label className="block text-xs font-bold mb-1.5 flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}><Tag className="w-3 h-3"/> Tags ({isEn ? 'EN' : 'ID'}, Comma Separated)</label>
+                 <input
+                   type="text"
+                   value={tags.join(', ')}
+                   onChange={e => setTags(e.target.value.split(',').map(t => t.trim()))}
                    placeholder="Nextjs, React, Supabase..."
                    className="w-full px-3 py-2 rounded-lg border bg-transparent text-sm outline-none focus:border-(--green)"
                    style={{ borderColor: 'var(--input-border)' }}
                  />
                </div>
+
+               <div>
+                 <label className="block text-xs font-bold mb-1.5" style={{ color: 'var(--text-secondary)' }}>Translation Status</label>
+                 <select
+                   value={post.translation_status ?? 'none'}
+                   onChange={e => setPost({ ...post, translation_status: e.target.value as TranslationStatus })}
+                   className="w-full px-3 py-2 rounded-lg border bg-transparent text-sm outline-none focus:border-(--green)"
+                   style={{ borderColor: 'var(--input-border)' }}
+                 >
+                   <option value="none">None (show Indonesian)</option>
+                   <option value="draft">Draft (not public)</option>
+                   <option value="published">Published</option>
+                 </select>
+                 <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>English is shown publicly only when status is Published.</p>
+               </div>
             </div>
 
             <div className="p-5 rounded-2xl border space-y-5" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
                <h3 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}><ImageIcon className="w-4 h-4" /> Cover Image</h3>
-               
+
                <FileUploader
                  folder="blogs"
                  compact
@@ -203,8 +278,8 @@ function BlogEditorContent() {
                  label="Unggah cover (gambar dikompres otomatis)"
                />
 
-               <input 
-                 type="text" 
+               <input
+                 type="text"
                  value={post.cover_url || ''}
                  onChange={e => setPost({...post, cover_url: e.target.value})}
                  placeholder="atau tempel URL cover di sini..."
@@ -214,7 +289,7 @@ function BlogEditorContent() {
                <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Paste an absolute image URL to be used as the blog cover.</p>
             </div>
          </div>
-         
+
       </form>
     </div>
   );

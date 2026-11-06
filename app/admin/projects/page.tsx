@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import AdminSidebar from '../../../src/components/AdminSidebar';
 import AdminToast from '../../../src/components/AdminToast';
 import { supabase } from '../../../src/lib/supabase';
-import type { Project } from '../../../src/types';
+import type { Project, TranslationStatus } from '../../../src/types';
 import { usePagination } from '../../../src/hooks/usePagination';
 import { useDebouncedValue } from '../../../src/hooks/useDebouncedValue';
 import { useResourceControls } from '../../../src/hooks/useResourceControls';
@@ -13,6 +13,7 @@ import { nextSortOrder } from '../../../src/lib/sortOrder';
 import PaginationControls from '../../../src/components/PaginationControls';
 import AdminListToolbar from '../../../src/components/AdminListToolbar';
 import FileUploader from '../../../src/components/FileUploader';
+import RichTextEditor from '../../../src/components/RichTextEditor';
 import { Plus, Trash2, ArrowUpDown, Loader2, Link as LinkIcon, Tag, ChevronDown, ChevronRight, Image as ImageIcon } from 'lucide-react';
 
 export default function ProjectsAdmin() {
@@ -57,6 +58,12 @@ export default function ProjectsAdmin() {
       image_url: '/img/placeholder.png',
       project_url: '#',
       tags: ['Website'],
+      description_format: 'markdown',
+      title_en: null,
+      description_en: null,
+      description_en_format: 'html',
+      tags_en: [],
+      translation_status: 'none',
       sort_order: newSortOrder
     }]).select().single();
     if (!error && data) {
@@ -248,13 +255,63 @@ export default function ProjectsAdmin() {
                          </div>
 
                          <div>
-                            <label className="text-[10px] uppercase font-bold text-(--text-muted) tracking-wider">Description</label>
-                            <textarea
-                               className="w-full px-2 py-1.5 rounded border bg-transparent text-sm mt-1 resize-none" style={{ borderColor: 'var(--input-border)' }} rows={3}
-                               value={p.description}
-                               onChange={e => setProjects(projects.map(x => x.id === p.id ? {...x, description: e.target.value} : x))}
-                               onBlur={e => saveChanges(p.id, { description: e.target.value })}
+                            <label className="text-[10px] uppercase font-bold text-(--text-muted) tracking-wider">Description (ID)</label>
+                            <div
+                              className="mt-1"
+                              onBlur={(e) => {
+                                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                  saveChanges(p.id, {
+                                    description: p.description,
+                                    description_format: p.description_format,
+                                    description_en: p.description_en,
+                                    description_en_format: p.description_en_format,
+                                  });
+                                }
+                              }}
+                            >
+                              <RichTextEditor
+                                value={p.description}
+                                format={p.description_format ?? 'markdown'}
+                                onChange={(html) => setProjects(projects.map(x => x.id === p.id ? {...x, description: html, description_format: 'html'} : x))}
+                                folder="projects"
+                                minHeight={160}
+                              />
+                            </div>
+                         </div>
+
+                         <div>
+                            <label className="text-[10px] uppercase font-bold text-(--text-muted) tracking-wider">Title (EN)</label>
+                            <input
+                              type="text" className="w-full px-2 py-1.5 rounded border bg-transparent text-sm mt-1 font-bold" style={{ borderColor: 'var(--input-border)' }}
+                              value={p.title_en ?? ''}
+                              onChange={e => setProjects(projects.map(x => x.id === p.id ? {...x, title_en: e.target.value} : x))}
+                              onBlur={e => saveChanges(p.id, { title_en: e.target.value })}
                             />
+                         </div>
+
+                         <div>
+                            <label className="text-[10px] uppercase font-bold text-(--text-muted) tracking-wider">Description (EN)</label>
+                            <div
+                              className="mt-1"
+                              onBlur={(e) => {
+                                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                  saveChanges(p.id, {
+                                    description: p.description,
+                                    description_format: p.description_format,
+                                    description_en: p.description_en,
+                                    description_en_format: p.description_en_format,
+                                  });
+                                }
+                              }}
+                            >
+                              <RichTextEditor
+                                value={p.description_en ?? ''}
+                                format={p.description_en_format ?? 'html'}
+                                onChange={(html) => setProjects(projects.map(x => x.id === p.id ? {...x, description_en: html, description_en_format: 'html'} : x))}
+                                folder="projects"
+                                minHeight={160}
+                              />
+                            </div>
                          </div>
 
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -275,6 +332,30 @@ export default function ProjectsAdmin() {
                                   onChange={e => setProjects(projects.map(x => x.id === p.id ? {...x, tags: e.target.value.split(',').map(t=>t.trim())} : x))}
                                   onBlur={e => saveChanges(p.id, { tags: e.target.value.split(',').map(t=>t.trim()).filter(Boolean) })}
                                 />
+                            </div>
+                         </div>
+
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-[10px] uppercase font-bold text-(--text-muted) tracking-wider flex items-center gap-1"><Tag className="w-3 h-3"/> Tags EN (Comma Separated)</label>
+                                <input
+                                  type="text" className="w-full px-2 py-1.5 rounded border bg-transparent text-sm md:text-xs mt-1" style={{ borderColor: 'var(--input-border)' }}
+                                  value={(p.tags_en ?? []).join(', ')}
+                                  onChange={e => setProjects(projects.map(x => x.id === p.id ? {...x, tags_en: e.target.value.split(',').map(t=>t.trim())} : x))}
+                                  onBlur={e => saveChanges(p.id, { tags_en: e.target.value.split(',').map(t=>t.trim()).filter(Boolean) })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] uppercase font-bold text-(--text-muted) tracking-wider">Translation Status</label>
+                                <select
+                                  className="w-full px-2 py-1.5 rounded border bg-transparent text-sm md:text-xs mt-1" style={{ borderColor: 'var(--input-border)' }}
+                                  value={p.translation_status ?? 'none'}
+                                  onChange={e => { const value = e.target.value as TranslationStatus; setProjects(projects.map(x => x.id === p.id ? {...x, translation_status: value} : x)); saveChanges(p.id, { translation_status: value }); }}
+                                >
+                                  <option value="none">None (show Indonesian)</option>
+                                  <option value="draft">Draft</option>
+                                  <option value="published">Published</option>
+                                </select>
                             </div>
                          </div>
                       </div>

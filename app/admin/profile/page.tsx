@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import AdminSidebar from '../../../src/components/AdminSidebar';
 import AdminToast from '../../../src/components/AdminToast';
 import { supabase } from '../../../src/lib/supabase';
-import type { Profile } from '../../../src/types';
+import type { Profile, TranslationStatus } from '../../../src/types';
 import FileUploader from '../../../src/components/FileUploader';
+import RichTextEditor from '../../../src/components/RichTextEditor';
 import { Save, Loader2, Camera, Link as LinkIcon, Edit3 } from 'lucide-react';
 
 export default function ProfileAdmin() {
@@ -56,7 +57,12 @@ export default function ProfileAdmin() {
       .update({
         full_name: profile.full_name,
         tagline: profile.tagline,
+        tagline_en: profile.tagline_en,
         bio: profile.bio,
+        bio_format: profile.bio_format,
+        bio_en: profile.bio_en,
+        bio_en_format: profile.bio_en_format,
+        translation_status: profile.translation_status,
         photo_url: profile.photo_url,
         cv_url: profile.cv_url,
         instagram_url: profile.instagram_url,
@@ -109,7 +115,7 @@ export default function ProfileAdmin() {
                   <div className="space-y-4">
                     <div>
                       <InputLabel>Full Name</InputLabel>
-                      <input 
+                      <input
                         type="text" required
                         value={profile.full_name}
                         onChange={e => setProfile({...profile, full_name: e.target.value})}
@@ -118,7 +124,7 @@ export default function ProfileAdmin() {
                       />
                     </div>
                     <div>
-                      <InputLabel>Tagline / Role</InputLabel>
+                      <InputLabel>Tagline / Role (ID)</InputLabel>
                       <input 
                         type="text" required
                         value={profile.tagline}
@@ -126,6 +132,30 @@ export default function ProfileAdmin() {
                         className="w-full px-4 py-2 rounded-lg border bg-transparent outline-none focus:border-(--green)"
                         style={{ borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
                       />
+                    </div>
+                    <div>
+                      <InputLabel>Tagline / Role (EN)</InputLabel>
+                      <input
+                        type="text"
+                        value={profile.tagline_en ?? ''}
+                        onChange={e => setProfile({...profile, tagline_en: e.target.value})}
+                        placeholder="English tagline..."
+                        className="w-full px-4 py-2 rounded-lg border bg-transparent outline-none focus:border-(--green)"
+                        style={{ borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
+                      />
+                    </div>
+                    <div>
+                      <InputLabel>Translation Status</InputLabel>
+                      <select
+                        value={profile.translation_status ?? 'none'}
+                        onChange={e => setProfile({ ...profile, translation_status: e.target.value as TranslationStatus })}
+                        className="w-full px-4 py-2 rounded-lg border bg-transparent outline-none focus:border-(--green)"
+                        style={{ borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
+                      >
+                        <option value="none">None (show Indonesian)</option>
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -208,18 +238,26 @@ export default function ProfileAdmin() {
 
                   <div className="space-y-4">
                     <div>
-                      <InputLabel>Markdown Biography</InputLabel>
+                      <InputLabel>Biography (ID)</InputLabel>
                       <p className="text-[10px] mb-2" style={{ color: 'var(--text-muted)' }}>
-                         Supports Markdown. You can create multiple paragraphs by leaving blank lines in between.
-                         Links syntax: <code>[Clickable Text](https://url.com)</code>
+                        Rich text with inline images. Legacy Markdown remains supported.
                       </p>
-                      <textarea 
-                        required rows={10}
+                      <RichTextEditor
                         value={profile.bio || ''}
-                        onChange={e => setProfile({...profile, bio: e.target.value})}
-                        className="w-full px-4 py-3 rounded-lg border bg-transparent font-mono text-sm outline-none focus:border-(--green) resize-y"
-                        style={{ borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
-                        placeholder="Write your biography here..."
+                        format={profile.bio_format ?? 'markdown'}
+                        onChange={(html) => setProfile({ ...profile, bio: html, bio_format: 'html' })}
+                        folder="content"
+                        minHeight={220}
+                      />
+                    </div>
+                    <div>
+                      <InputLabel>Biography (EN)</InputLabel>
+                      <RichTextEditor
+                        value={profile.bio_en ?? ''}
+                        format={profile.bio_en_format ?? 'html'}
+                        onChange={(html) => setProfile({ ...profile, bio_en: html, bio_en_format: 'html' })}
+                        folder="content"
+                        minHeight={220}
                       />
                     </div>
                   </div>

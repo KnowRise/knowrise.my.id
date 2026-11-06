@@ -6,9 +6,12 @@ import SearchInput from '../components/SearchInput';
 import { usePagination } from '../hooks/usePagination';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { supabase } from '../lib/supabase';
+import { useLocale } from '../context/LocaleContext';
+import { dateLocale } from '../lib/i18n';
 import type { Certification } from '../types';
 
 export default function Certifications() {
+  const { locale, t } = useLocale();
   const [items, setItems] = useState<Certification[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -44,10 +47,10 @@ export default function Certifications() {
 
   function formatPeriod(item: Certification): string {
     const issue = item.issue_date
-      ? new Date(item.issue_date).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+      ? new Date(item.issue_date).toLocaleDateString(dateLocale(locale), { month: 'long', year: 'numeric' })
       : '';
     const exp = item.expiration_date
-      ? new Date(item.expiration_date).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+      ? new Date(item.expiration_date).toLocaleDateString(dateLocale(locale), { month: 'long', year: 'numeric' })
       : null;
     if (issue && exp) return `${issue} — ${exp}`;
     if (issue) return issue;
@@ -57,15 +60,15 @@ export default function Certifications() {
   return (
     <div className="py-14 page-in">
       <h1 className="text-3xl font-bold font-montserrat text-center mb-3" style={{ color: 'var(--text-primary)' }}>
-        Sertifikasi
+        {t('cert.title')}
       </h1>
       <p className="text-center mb-10 text-sm" style={{ color: 'var(--text-secondary)' }}>
-        Sertifikat keahlian dari lembaga terpercaya.
+        {t('cert.subtitle')}
       </p>
 
       {!loading && (
         <div className="mb-8">
-          <SearchInput value={search} onChange={setSearch} placeholder="Cari sertifikasi/issuer/ID..." className="max-w-md mx-auto" />
+          <SearchInput value={search} onChange={setSearch} placeholder={t('cert.search')} className="max-w-md mx-auto" />
         </div>
       )}
 
@@ -74,7 +77,7 @@ export default function Certifications() {
       ) : items.length === 0 ? (
         <div className="text-center py-16" style={{ color: 'var(--text-muted)' }}>
           <BadgeCheck className="w-10 h-10 mx-auto mb-3" />
-          {search.trim() ? <p>Tidak ada hasil untuk pencarian ini.</p> : <p>Belum ada sertifikasi untuk ditampilkan.</p>}
+          {search.trim() ? <p>{t('cert.noResults')}</p> : <p>{t('cert.empty')}</p>}
         </div>
       ) : (
         <div>
@@ -104,7 +107,7 @@ export default function Certifications() {
                 <p>{formatPeriod(item)}</p>
                 {item.credential_id && (
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    ID: {item.credential_id}
+                    {t('cert.id')}: {item.credential_id}
                   </p>
                 )}
               </div>
@@ -117,7 +120,7 @@ export default function Certifications() {
                   className="flex items-center gap-1.5 text-sm font-semibold hover:opacity-80 transition-opacity"
                   style={{ color: 'var(--green)' }}
                 >
-                  <ExternalLink className="w-3.5 h-3.5" /> Verifikasi
+                  <ExternalLink className="w-3.5 h-3.5" /> {t('cert.verify')}
                 </a>
               )}
             </div>

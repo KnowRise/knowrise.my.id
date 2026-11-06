@@ -6,17 +6,22 @@ import SearchInput from '../components/SearchInput';
 import { usePagination } from '../hooks/usePagination';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { supabase } from '../lib/supabase';
+import { useLocale } from '../context/LocaleContext';
+import { dateLocale, type MessageKey } from '../lib/i18n';
+import { hkiTranslationAvailable, localizeHki } from '../lib/localized';
+import { renderRichContent } from '../lib/content';
 import type { HkiEntry } from '../types';
 
-const TYPE_LABELS: Record<string, { label: string; icon: string }> = {
-  patent: { label: 'Paten', icon: '⚙️' },
-  copyright_creator: { label: 'Hak Cipta', icon: '🎨' },
-  copyright_software: { label: 'Hak Cipta Perangkat Lunak', icon: '💻' },
-  trademark: { label: 'Merek', icon: '🏷️' },
-  industrial_design: { label: 'Desain Industri', icon: '📐' },
+const TYPE_META: Record<string, { key: MessageKey; icon: string }> = {
+  patent: { key: 'hki.type.patent', icon: '⚙️' },
+  copyright_creator: { key: 'hki.type.copyright_creator', icon: '🎨' },
+  copyright_software: { key: 'hki.type.copyright_software', icon: '💻' },
+  trademark: { key: 'hki.type.trademark', icon: '🏷️' },
+  industrial_design: { key: 'hki.type.industrial_design', icon: '📐' },
 };
 
 export default function Hki() {
+  const { locale, t } = useLocale();
   const [items, setItems] = useState<HkiEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -27,7 +32,7 @@ export default function Hki() {
     if (pg.page !== 1) pg.resetPage();
   }, [debounced]);
 
-  useEffect(() => { fetchData(); }, [pg.page, debounced]);
+  useEffect(() => { fetchData(); }, [pg.page, debounced, locale]);
 
   async function fetchData() {
     setLoading(true);
@@ -36,10 +41,10 @@ export default function Hki() {
       const term = debounced.trim();
       if (term) {
         const esc = term.replace(/[%_]/g, (m) => '\\' + m);
-        query = query.or(`title.ilike.%${esc}%,type.ilike.%${esc}%,status.ilike.%${esc}%,holder.ilike.%${esc}%`);
+        query = query.or(`title.ilike.%${esc}%,title_en.ilike.%${esc}%,type.ilike.%${esc}%,status.ilike.%${esc}%,status_en.ilike.%${esc}%,holder.ilike.%${esc}%,holder_en.ilike.%${esc}%,description.ilike.%${esc}%,description_en.ilike.%${esc}%`);
       }
       const { data, count } = await query.order('sort_order', { ascending: true }).range(pg.from, pg.to);
-      setItems((data || []) as HkiEntry[]);
+      setItems(((data || []) as HkiEntry[]).map((item) => localizeHki(item, locale)));
       if (count !== null) pg.setTotal(count);
     } else {
       setItems([]);
@@ -53,15 +58,15 @@ export default function Hki() {
   return (
     <div className="py-14 page-in">
       <h1 className="text-3xl font-bold font-montserrat text-center mb-3" style={{ color: 'var(--text-primary)' }}>
-        Hak Kekayaan Intelektual
+        {t('hki.title')}
       </h1>
       <p className="text-center mb-10 text-sm" style={{ color: 'var(--text-secondary)' }}>
-        Karya yang tercatat dan terlindungi secara hukum.
+        {t('hki.subtitle')}
       </p>
 
       {!loading && (
         <div className="mb-8">
-          <SearchInput value={search} onChange={setSearch} placeholder="Cari judul/tipe/status/pemegang..." className="max-w-md mx-auto" />
+          <SearchInput value={search} onChange={setSearch} placeholder={t('hki.search')} className="max-w-md mx-auto" />
         </div>
       )}
 
@@ -70,13 +75,15 @@ export default function Hki() {
       ) : items.length === 0 ? (
         <div className="text-center py-16" style={{ color: 'var(--text-muted)' }}>
           <Award className="w-10 h-10 mx-auto mb-3" />
-          {search.trim() ? <p>Tidak ada hasil untuk pencarian ini.</p> : <p>Belum ada catatan HKI untuk ditampilkan.</p>}
+          {search.trim() ? <p>{t('hki.noResults')}</p> : <p>{t('hki.empty')}</p>}
         </div>
       ) : (
         <div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {pageItems.map((item) => {
-            const typeInfo = TYPE_LABELS[item.type] || { label: item.type, icon: '📄' };
+            const typeMeta = TYPE_META[item.type];
+            const typeInfo = typeMeta ? { label: t(typeMeta.key), icon: typeMeta.icon } : { label: item.type, icon: '📄' };
+            const translationAvailable = hkiTranslationAvailable(item, locale);
             return (
               <div
                 key={item.id}
@@ -100,21 +107,27 @@ export default function Hki() {
                 <div className="space-y-1.5 text-sm mb-4">
                   {item.registration_number && (
                     <p style={{ color: 'var(--text-secondary)' }}>
-                      <span className="font-semibold">No. Pendaftaran:</span> {item.registration_number}
+                      <span className="font-semibold">{t('hki.registration')}:</span> {item.registration_number}
                     </p>
                   )}
                   {item.holder && (
                     <p style={{ color: 'var(--text-secondary)' }}>
-                      <span className="font-semibold">Pemegang:</span> {item.holder}
+                      <span className="font-semibold">{t('hki.holder')}:</span> {item.holder}
                     </p>
                   )}
                   {item.grant_date && (
                     <p style={{ color: 'var(--text-secondary)' }}>
-                      <span className="font-semibold">Tanggal:</span> {new Date(item.grant_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      <span className="font-semibold">{t('hki.date')}:</span> {new Date(item.grant_date).toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   )}
+                  {!translationAvailable && (
+                    <p className="pt-1 text-[10px] italic" style={{ color: 'var(--text-muted)' }}>{t('hki.fallback')}</p>
+                  )}
                   {item.description && (
-                    <p className="pt-1 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{item.description}</p>
+                    <div
+                      className="rich-content pt-1 text-sm"
+                      dangerouslySetInnerHTML={{ __html: renderRichContent(item.description, item.description_format) }}
+                    />
                   )}
                 </div>
 
@@ -123,13 +136,13 @@ export default function Hki() {
                     {item.document_url && (
                       <a href={item.document_url} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-1.5 hover:opacity-80 transition-opacity" style={{ color: 'var(--green)' }}>
-                        <FileText className="w-3.5 h-3.5" /> Dokumen
+                        <FileText className="w-3.5 h-3.5" /> {t('hki.document')}
                       </a>
                     )}
                     {item.url && (
                       <a href={item.url} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-1.5 hover:opacity-80 transition-opacity" style={{ color: 'var(--green)' }}>
-                        <ExternalLink className="w-3.5 h-3.5" /> Detail
+                        <ExternalLink className="w-3.5 h-3.5" /> {t('hki.detail')}
                       </a>
                     )}
                   </div>

@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useLocale } from '../context/LocaleContext';
 
 interface FormState {
   name: string;
@@ -12,6 +13,7 @@ interface FormState {
 type Status = 'idle' | 'sending' | 'success' | 'error';
 
 export default function Contact() {
+  const { t } = useLocale();
   const [form, setForm] = useState<FormState>({ name: '', email: '', subject: '', message: '' });
   const [status, setStatus] = useState<Status>('idle');
 
@@ -48,17 +50,17 @@ export default function Contact() {
   return (
     <div className="py-14 page-in">
       <h1 className="text-3xl font-bold font-montserrat text-center mb-3" style={{ color: 'var(--text-primary)' }}>
-        Contact
+        {t('contact.title')}
       </h1>
       <p className="text-center mb-10 text-sm" style={{ color: 'var(--text-secondary)' }}>
-        Punya pertanyaan, tawaran project, atau hanya ingin menyapa? Kirim pesan!
+        {t('contact.subtitle')}
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         {/* Info */}
         <div className="flex flex-col gap-5">
           <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-            Aku terbuka untuk peluang baru, kolaborasi proyek, atau sekadar ngobrol soal teknologi. Kirim pesan dan aku akan balas segera.
+            {t('contact.intro')}
           </p>
 
           {[
@@ -83,9 +85,9 @@ export default function Contact() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {[
-            { name: 'name', label: 'Nama', type: 'text', placeholder: 'Nama kamu' },
-            { name: 'email', label: 'Email', type: 'email', placeholder: 'email@kamu.com' },
-            { name: 'subject', label: 'Subjek', type: 'text', placeholder: 'Subjek pesanmu' },
+            { name: 'name', label: t('contact.name'), type: 'text', placeholder: t('contact.namePlaceholder') },
+            { name: 'email', label: t('contact.email'), type: 'email', placeholder: t('contact.emailPlaceholder') },
+            { name: 'subject', label: t('contact.subject'), type: 'text', placeholder: t('contact.subjectPlaceholder') },
           ].map(({ name, label, type, placeholder }) => (
             <div key={name} className="flex flex-col gap-1">
               <label className="text-xs font-semibold font-montserrat uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
@@ -106,13 +108,13 @@ export default function Contact() {
 
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold font-montserrat uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-              Pesan
+              {t('contact.message')}
             </label>
             <textarea
               name="message"
               value={form.message}
               onChange={handleChange}
-              placeholder="Hai Rifaa, aku mau ngobrol soal..."
+              placeholder={t('contact.messagePlaceholder')}
               rows={5}
               required
               className="rounded-lg px-4 py-2.5 text-sm border outline-none focus:border-(--green) transition-colors resize-y"
@@ -122,12 +124,12 @@ export default function Contact() {
 
           {status === 'success' && (
             <p className="text-sm text-center" style={{ color: 'var(--green)' }}>
-              ✅ Pesan terkirim! Aku akan balas segera.
+              {t('contact.success')}
             </p>
           )}
           {status === 'error' && (
             <p className="text-sm text-center" style={{ color: '#f87171' }}>
-              ❌ Gagal mengirim. Coba lagi atau hubungi via email langsung.
+              {t('contact.error')}
             </p>
           )}
 
@@ -137,7 +139,7 @@ export default function Contact() {
             className="py-2.5 rounded-lg font-bold font-montserrat text-sm transition-opacity disabled:opacity-60"
             style={{ background: 'var(--btn-active)', color: 'var(--btn-active-text)' }}
           >
-            {status === 'sending' ? 'Mengirim...' : 'Kirim Pesan'}
+            {status === 'sending' ? t('contact.sending') : t('contact.send')}
           </button>
         </form>
       </div>

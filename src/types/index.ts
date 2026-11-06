@@ -1,3 +1,9 @@
+// ===== SHARED CONTENT TYPES =====
+
+export type ContentFormat = 'markdown' | 'html';
+export type TranslationStatus = 'none' | 'draft' | 'published';
+export type Locale = 'id' | 'en';
+
 // ===== DATA TYPES =====
 //
 // created_at sengaja ditipekan `string | null`: di Postgres kolomnya
@@ -13,6 +19,12 @@ export interface WorkExperience {
   company: string;
   company_url: string | null;
   description: string;
+  description_format: ContentFormat;
+  title_en: string | null;
+  company_en: string | null;
+  description_en: string | null;
+  description_en_format: ContentFormat;
+  translation_status: TranslationStatus;
   sort_order: number;
   created_at: string | null;
 }
@@ -24,6 +36,12 @@ export interface Education {
   institution: string;
   institution_url: string | null;
   description: string;
+  description_format: ContentFormat;
+  title_en: string | null;
+  institution_en: string | null;
+  description_en: string | null;
+  description_en_format: ContentFormat;
+  translation_status: TranslationStatus;
   sort_order: number;
   created_at: string | null;
 }
@@ -32,6 +50,12 @@ export interface Project {
   id: string;
   title: string;
   description: string;
+  description_format: ContentFormat;
+  title_en: string | null;
+  description_en: string | null;
+  description_en_format: ContentFormat;
+  tags_en: string[];
+  translation_status: TranslationStatus;
   image_url: string;
   project_url: string;
   tags: string[];
@@ -58,6 +82,14 @@ export interface BlogPost {
   title: string;
   slug: string;
   content: string;
+  content_format: ContentFormat;
+  title_en: string | null;
+  slug_en: string | null;
+  content_en: string | null;
+  content_en_format: ContentFormat;
+  excerpt_en: string | null;
+  tags_en: string[];
+  translation_status: TranslationStatus;
   excerpt: string | null;
   cover_url: string | null;
   tags: string[];
@@ -72,6 +104,11 @@ export interface Profile {
   full_name: string;
   tagline: string;
   bio: string;
+  bio_format: ContentFormat;
+  tagline_en: string | null;
+  bio_en: string | null;
+  bio_en_format: ContentFormat;
+  translation_status: TranslationStatus;
   photo_url: string | null;
   cv_url: string | null;
   instagram_url: string | null;
@@ -110,6 +147,13 @@ export interface HkiEntry {
   holder: string | null;
   grant_date: string | null;
   description: string | null;
+  description_format: ContentFormat;
+  title_en: string | null;
+  description_en: string | null;
+  description_en_format: ContentFormat;
+  status_en: string | null;
+  holder_en: string | null;
+  translation_status: TranslationStatus;
   document_url: string | null;
   url: string | null;
   sort_order: number;
@@ -164,6 +208,8 @@ export interface TimelineItemProps {
   company: string;
   url?: string | null;
   description: string;
+  descriptionFormat?: ContentFormat;
+  fallbackMessage?: string | null;
   direction: 'left' | 'right';
 }
 

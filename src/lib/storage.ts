@@ -9,7 +9,8 @@ export type MediaFolder =
   | 'blogs'
   | 'publications'
   | 'certifications'
-  | 'hki';
+  | 'hki'
+  | 'content';
 
 const BUCKET_PREFIX = `/storage/v1/object/public/${MEDIA_BUCKET}/`;
 

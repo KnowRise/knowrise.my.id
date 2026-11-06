@@ -6,10 +6,13 @@ import SearchInput from '../components/SearchInput';
 import { usePagination } from '../hooks/usePagination';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { supabase } from '../lib/supabase';
+import { useLocale } from '../context/LocaleContext';
+import { localizeProject } from '../lib/localized';
 import type { Project } from '../types';
 import projectsJson from '../assets/json/projects.json';
 
 export default function Projects() {
+  const { locale, t } = useLocale();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -20,7 +23,7 @@ export default function Projects() {
     if (pg.page !== 1) pg.resetPage();
   }, [debounced]);
 
-  useEffect(() => { fetchData(); }, [pg.page, debounced]);
+  useEffect(() => { fetchData(); }, [pg.page, debounced, locale]);
 
   async function fetchData() {
     setLoading(true);
@@ -29,10 +32,10 @@ export default function Projects() {
       const term = debounced.trim();
       if (term) {
         const esc = term.replace(/[%_]/g, (m) => '\\' + m);
-        query = query.or(`title.ilike.%${esc}%,description.ilike.%${esc}%`);
+        query = query.or(`title.ilike.%${esc}%,title_en.ilike.%${esc}%,description.ilike.%${esc}%,description_en.ilike.%${esc}%`);
       }
       const { data, count } = await query.order('sort_order', { ascending: true }).range(pg.from, pg.to);
-      setProjects((data || []) as Project[]);
+      setProjects(((data || []) as Project[]).map((project) => localizeProject(project, locale)));
       if (count !== null) pg.setTotal(count);
     } else {
       setProjects(projectsJson.map((w) => ({
@@ -42,6 +45,12 @@ export default function Projects() {
         image_url: w.imageSrc,
         project_url: w.projectUrl,
         tags: w.tags,
+        description_format: 'markdown',
+        title_en: null,
+        description_en: null,
+        description_en_format: 'html',
+        tags_en: [],
+        translation_status: 'none',
         sort_order: w.id,
         created_at: '',
       })));
@@ -52,9 +61,12 @@ export default function Projects() {
 
   return (
     <div className="py-14 page-in">
-      <h1 className="text-3xl font-bold font-montserrat text-center mb-14" style={{ color: 'var(--text-primary)' }}>
-        My Projects
+      <h1 className="text-3xl font-bold font-montserrat text-center mb-3" style={{ color: 'var(--text-primary)' }}>
+        {t('projects.title')}
       </h1>
+      <p className="text-center mb-14 text-sm" style={{ color: 'var(--text-secondary)' }}>
+        {t('projects.subtitle')}
+      </p>
 
       {loading ? (
         <div className="space-y-12">
@@ -72,11 +84,11 @@ export default function Projects() {
       ) : (
         <div>
           <div className="mb-10">
-            <SearchInput value={search} onChange={setSearch} placeholder="Cari proyek..." className="max-w-md mx-auto" />
+            <SearchInput value={search} onChange={setSearch} placeholder={t('projects.search')} className="max-w-md mx-auto" />
           </div>
           {projects.length === 0 ? (
             <p className="text-center py-16" style={{ color: 'var(--text-muted)' }}>
-              {search.trim() ? `Tidak ada hasil untuk "${search}".` : 'Belum ada proyek untuk ditampilkan.'}
+              {search.trim() ? t('projects.noResults', { q: search }) : t('projects.empty')}
             </p>
           ) : (
             <>

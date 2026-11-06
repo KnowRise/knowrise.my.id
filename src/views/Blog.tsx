@@ -7,14 +7,17 @@ import SearchInput from '../components/SearchInput';
 import { usePagination } from '../hooks/usePagination';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { supabase } from '../lib/supabase';
+import { useLocale } from '../context/LocaleContext';
+import { localizeBlog } from '../lib/localized';
 import type { BlogPost } from '../types';
 
 export default function Blog() {
+  const { locale, t } = useLocale();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [activeTag, setActiveTag] = useState<string>('All');
+  const [activeTag, setActiveTag] = useState<string>('');
   const pg = usePagination(6);
   const debounced = useDebouncedValue(search, 350);
 
@@ -22,35 +25,47 @@ export default function Blog() {
     if (!supabase) return;
     supabase
       .from('blogs')
-      .select('tags')
+      .select('tags, tags_en, translation_status')
       .eq('is_published', true)
       .then(({ data }) => {
-        const all = Array.from(new Set((data || []).flatMap((r) => (r as BlogPost).tags))).sort();
+        const all = Array.from(new Set((data || []).flatMap((r) => {
+          const row = r as Pick<BlogPost, 'tags' | 'tags_en' | 'translation_status'>;
+          return locale === 'en' && row.translation_status === 'published' && row.tags_en?.length
+            ? row.tags_en
+            : row.tags;
+        }))).sort();
         setTags(all);
       });
-  }, []);
+  }, [locale]);
+
+  useEffect(() => {
+    setActiveTag('');
+  }, [locale]);
 
   useEffect(() => {
     if (pg.page !== 1) pg.resetPage();
-  }, [debounced, activeTag]);
+  }, [debounced, activeTag, locale]);
 
-  useEffect(() => { fetchPosts(); }, [pg.page, debounced, activeTag]);
+  useEffect(() => { fetchPosts(); }, [pg.page, debounced, activeTag, locale]);
 
   async function fetchPosts() {
     setLoading(true);
     if (supabase) {
       let query: any = supabase.from('blogs').select('*', { count: 'exact' }).eq('is_published', true);
-      if (activeTag !== 'All') query = query.contains('tags', [activeTag]);
+      if (activeTag) {
+        const tag = activeTag.replace(/[{}%_,()"]/g, '');
+        query = query.or(`tags.cs.{${tag}},tags_en.cs.{${tag}}`);
+      }
       const term = debounced.trim();
       if (term) {
         const esc = term.replace(/[%_]/g, (m) => '\\' + m);
-        query = query.or(`title.ilike.%${esc}%,excerpt.ilike.%${esc}%`);
+        query = query.or(`title.ilike.%${esc}%,title_en.ilike.%${esc}%,excerpt.ilike.%${esc}%,excerpt_en.ilike.%${esc}%`);
       }
       // nullsFirst: false karena default Postgres untuk DESC adalah
       // NULLS FIRST, yang membuat post tanpa published_at mendongkar di
       // urutan paling atas.
       const { data, count } = await query.order('published_at', { ascending: false, nullsFirst: false }).range(pg.from, pg.to);
-      setPosts((data || []) as BlogPost[]);
+      setPosts(((data || []) as BlogPost[]).map((post) => localizeBlog(post, locale)));
       if (count !== null) pg.setTotal(count);
     } else {
       setPosts([]);
@@ -59,15 +74,15 @@ export default function Blog() {
     setLoading(false);
   }
 
-  const allTags = ['All', ...tags];
+  const allTags = ['', ...tags];
 
   return (
     <div className="py-14 page-in">
       <h1 className="text-3xl font-bold font-montserrat text-center mb-3" style={{ color: 'var(--text-primary)' }}>
-        Blog
+        {t('blog.title')}
       </h1>
       <p className="text-center mb-8 text-sm" style={{ color: 'var(--text-secondary)' }}>
-        Tulisan tentang keseharian, engineering, dan hal-hal yang aku pelajari.
+        {t('blog.subtitle')}
       </p>
 
       {/* Tag filter */}
@@ -84,7 +99,7 @@ export default function Blog() {
                 borderColor: activeTag === tag ? 'var(--btn-active)' : 'var(--card-border)',
               }}
             >
-              {tag}
+              {tag === '' ? t('blog.all') : tag}
             </button>
           ))}
         </div>
@@ -92,7 +107,7 @@ export default function Blog() {
 
       {!loading && (
         <div className="mb-8">
-          <SearchInput value={search} onChange={setSearch} placeholder="Cari tulisan..." className="max-w-md mx-auto" />
+          <SearchInput value={search} onChange={setSearch} placeholder={t('blog.search')} className="max-w-md mx-auto" />
         </div>
       )}
 
@@ -101,9 +116,9 @@ export default function Blog() {
       ) : posts.length === 0 ? (
         <div className="text-center py-16" style={{ color: 'var(--text-muted)' }}>
           <p className="text-4xl mb-4">✍️</p>
-          {search.trim() || activeTag !== 'All'
-            ? <p>Tidak ada hasil untuk pencarian ini.</p>
-            : <p>Belum ada postingan untuk saat ini. Nantikan tulisan pertama!</p>}
+          {search.trim() || activeTag
+            ? <p>{t('blog.noResults')}</p>
+            : <p>{t('blog.empty')}</p>}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

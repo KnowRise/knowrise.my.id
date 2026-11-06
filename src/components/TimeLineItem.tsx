@@ -1,6 +1,7 @@
+import { renderRichContent } from '../lib/content';
 import type { TimelineItemProps } from '../types';
 
-export default function TimelineItem({ title, period, company, url, description, direction }: TimelineItemProps) {
+export default function TimelineItem({ title, period, company, url, description, descriptionFormat = 'markdown', fallbackMessage, direction }: TimelineItemProps) {
   const isRight = direction === 'right';
 
   return (
@@ -33,7 +34,13 @@ export default function TimelineItem({ title, period, company, url, description,
         ) : (
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{company}</p>
         )}
-        <p className="text-sm mt-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{description}</p>
+        {fallbackMessage && (
+          <p className="text-[10px] italic mt-3" style={{ color: 'var(--text-muted)' }}>{fallbackMessage}</p>
+        )}
+        <div
+          className="rich-content text-sm mt-3"
+          dangerouslySetInnerHTML={{ __html: renderRichContent(description, descriptionFormat) }}
+        />
       </div>
     </div>
   );

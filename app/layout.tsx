@@ -1,8 +1,11 @@
 import './globals.css';
+import { headers } from 'next/headers';
 import { ThemeProvider } from '../src/context/ThemeContext';
 import Navbar from '../src/components/Navbar';
 import Footer from '../src/components/Footer';
 import ClientLayoutWrapper from '../src/components/ClientLayoutWrapper';
+import { LocaleProvider } from '../src/context/LocaleContext';
+import type { Locale } from '../src/types';
 import { supabase } from '../src/lib/supabase';
 import { getSettings } from '../src/lib/settings';
 
@@ -27,15 +30,23 @@ export async function generateMetadata(): Promise<Metadata> {
   let tagline = 'A Junior Backend Developer Portfolio exploring modern web technologies, backend systems, and solving complex problems.';
   let photo = FALLBACK_PHOTO;
 
+  const requestHeaders = await headers();
+  const locale: Locale = requestHeaders.get('x-locale') === 'en' ? 'en' : 'id';
+
   if (supabase) {
     const { data } = await supabase
       .from('profile')
-      .select('full_name, tagline, photo_url')
+      .select('full_name, tagline, tagline_en, photo_url, translation_status')
       .eq('id', 'primary')
       .single();
     if (data) {
       if (data.full_name) fullName = data.full_name;
-      if (data.tagline) tagline = data.tagline;
+      const localizedTagline = locale === 'en'
+        && data.translation_status === 'published'
+        && data.tagline_en
+        ? data.tagline_en
+        : data.tagline;
+      if (localizedTagline) tagline = localizedTagline;
       if (data.photo_url) photo = data.photo_url;
     }
   }
@@ -57,7 +68,7 @@ export async function generateMetadata(): Promise<Metadata> {
           alt: fullName,
         },
       ],
-      locale: 'en_US',
+      locale: locale === 'en' ? 'en_US' : 'id_ID',
       type: 'website',
     },
     twitter: {
@@ -75,11 +86,14 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const settings = await getSettings();
+  const requestHeaders = await headers();
+  const locale: Locale = requestHeaders.get('x-locale') === 'en' ? 'en' : 'id';
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className="antialiased font-source-serif-4 bg-(--bg-base) text-(--text-primary) transition-colors duration-300 overflow-x-hidden min-h-screen">
         <ThemeProvider>
+          <LocaleProvider initialLocale={locale}>
           {/* CSS-only animated blob background */}
           <div className="bg-scene">
             <div className="bg-blob bg-blob-1" />
@@ -94,6 +108,7 @@ export default async function RootLayout({
             </main>
             <Footer />
           </ClientLayoutWrapper>
+          </LocaleProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,9 +1,11 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useLocale } from '../context/LocaleContext';
 
 export default function Footer() {
   const pathname = usePathname();
+  const { t } = useLocale();
 
   if (pathname === '/login' || pathname?.startsWith('/admin')) {
     return null;
@@ -15,9 +17,9 @@ export default function Footer() {
         KnowRise
       </span>
       <div className="text-xs flex flex-col items-end gap-1 mt-1" style={{ color: 'var(--text-muted)' }}>
-        <p>Stay Positive and Be Yourself</p>
+        <p>{t('footer.tagline')}</p>
         <p className="text-right">
-          Developed by me using{' '}
+          {t('footer.developed')}{' '}
           <a
             href="https://react.dev/"
             target="_blank"
@@ -27,7 +29,7 @@ export default function Footer() {
           >
             React
           </a>{' '}
-          and{' '}
+          {t('footer.and')}{' '}
           <a
             href="https://tailwindcss.com/"
             target="_blank"
@@ -37,13 +39,13 @@ export default function Footer() {
           >
             Tailwind CSS
           </a>
-          . Spot an issue?{' '}
+          . {t('footer.spotIssue')}{' '}
           <a
             href="mailto:rifaasiraajuddin.123@gmail.com"
             className="border-b hover:border-0 transition-all"
             style={{ color: 'var(--text-muted)' }}
           >
-            Let me know
+            {t('footer.letMeKnow')}
           </a>
           .
         </p>

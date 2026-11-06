@@ -1,22 +1,26 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { FileText } from 'lucide-react';
+import { useLocale } from '../context/LocaleContext';
+import { dateLocale, localizePath } from '../lib/i18n';
+import { blogTranslationAvailable } from '../lib/localized';
+import { estimateReadTime } from '../lib/content';
 import type { BlogCardProps } from '../types';
 
 export default function BlogCard({ post }: BlogCardProps) {
+  const { locale, t } = useLocale();
   const date = post.published_at
-    ? new Date(post.published_at).toLocaleDateString('id-ID', {
+    ? new Date(post.published_at).toLocaleDateString(dateLocale(locale), {
         day: 'numeric', month: 'long', year: 'numeric',
       })
     : null;
 
-  // rough read time estimate
-  const wordCount = post.content.split(' ').length;
-  const readTime = Math.max(1, Math.round(wordCount / 200));
+  const readTime = estimateReadTime(post.content, post.content_format);
+  const translationAvailable = blogTranslationAvailable(post, locale);
 
   return (
     <Link
-      href={`/blog/${post.slug}`}
+      href={localizePath(locale, `/blog/${post.slug}`)}
       className="group block overflow-hidden rounded-xl border transition-all duration-200 hover:-translate-y-0.5 flex flex-col"
       style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}
       data-aos="fade-up"
@@ -68,8 +72,11 @@ export default function BlogCard({ post }: BlogCardProps) {
           </p>
         )}
 
+        {!translationAvailable && (
+          <span className="text-[10px] italic mb-2" style={{ color: 'var(--text-muted)' }}>{t('blog.fallback')}</span>
+        )}
         <span className="text-xs font-semibold mt-auto" style={{ color: 'var(--green)' }}>
-          Baca selengkapnya ({readTime} menit) →
+          {t('blog.readMore', { n: readTime })}
         </span>
       </div>
     </Link>

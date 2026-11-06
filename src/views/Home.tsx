@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInstagram, faGithub } from '@fortawesome/free-brands-svg-icons';
-import { marked } from 'marked';
 import { supabase } from '../lib/supabase';
+import { useLocale } from '../context/LocaleContext';
+import { localizeProfile, profileTranslationAvailable } from '../lib/localized';
+import { renderRichContent } from '../lib/content';
 import type { Profile } from '../types';
 
 // Static fallback
@@ -14,6 +16,11 @@ const STATIC_PROFILE: Profile = {
   tagline: 'Backend Developer',
   bio:
     'A 2025 graduate from SMKN 2 Sukabumi with a specialization in Software Engineering. As a Junior Backend Developer at a local startup, I\'m actively involved in building and maintaining efficient and reliable backend systems.\n\nI am a curious and persistent individual who is genuinely passionate about problem-solving. I believe that the best solutions come from a deep understanding of the core issue, and I enjoy the process of breaking down complex challenges into manageable parts. This methodical approach drives my work and my commitment to continuous learning.',
+  bio_format: 'markdown',
+  tagline_en: null,
+  bio_en: null,
+  bio_en_format: 'html',
+  translation_status: 'none',
   photo_url: '/img/MyFoto.png',
   cv_url: '/cv.pdf',
   instagram_url: 'https://www.instagram.com/rifaa_srjdn/',
@@ -22,6 +29,7 @@ const STATIC_PROFILE: Profile = {
 
 export default function Home() {
   const [profile, setProfile] = useState<Profile>(STATIC_PROFILE);
+  const { locale, t } = useLocale();
 
   useEffect(() => {
     if (!supabase) return;
@@ -33,6 +41,9 @@ export default function Home() {
       .then(({ data }) => { if (data) setProfile(data as Profile); });
   }, []);
 
+  const localizedProfile = localizeProfile(profile, locale);
+  const translationAvailable = profileTranslationAvailable(profile, locale);
+
   return (
     <div className="flex flex-col gap-10 py-14 page-in">
       {/* Hero */}
@@ -41,23 +52,26 @@ export default function Home() {
         <div className="flex flex-col gap-4 md:max-w-[70%]">
           <div>
             <h1 className="text-2xl md:text-4xl font-montserrat leading-snug" style={{ color: 'var(--text-primary)' }}>
-              {profile.full_name}
+              {localizedProfile.full_name}
             </h1>
             <h2 className="text-sm md:text-xl font-montserrat italic mt-1" style={{ color: 'var(--green)' }}>
-              {profile.tagline}
+              {localizedProfile.tagline}
             </h2>
           </div>
           
-          <div 
-            className="prose prose-sm md:prose-base max-w-none text-(--text-secondary) prose-a:text-(--green) prose-a:font-bold hover:prose-a:underline"
-            dangerouslySetInnerHTML={{ __html: marked.parse(profile.bio || '', { async: false }) as string }}
+          {!translationAvailable && (
+            <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>{t('common.fallback')}</p>
+          )}
+          <div
+            className="rich-content text-sm md:text-base"
+            dangerouslySetInnerHTML={{ __html: renderRichContent(localizedProfile.bio, localizedProfile.bio_format) }}
           />
 
           {/* Social + CV */}
           <div className="flex flex-wrap gap-3 items-center mt-2">
             {profile.instagram_url && (
               <a
-                href={profile.instagram_url}
+                href={localizedProfile.instagram_url ?? undefined}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm transition-all hover:border-(--green) hover:text-(--green)"
@@ -69,7 +83,7 @@ export default function Home() {
             )}
             {profile.github_url && (
               <a
-                href={profile.github_url}
+                href={localizedProfile.github_url ?? undefined}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm transition-all hover:border-(--green) hover:text-(--green)"
@@ -81,14 +95,14 @@ export default function Home() {
             )}
             {profile.cv_url && (
               <a
-                href={profile.cv_url}
+                href={localizedProfile.cv_url ?? undefined}
                 download
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold font-montserrat transition-opacity hover:opacity-85"
                 style={{ background: 'var(--btn-active)', color: 'var(--btn-active-text)' }}
               >
-                ⬇ Download CV
+                ⬇ {t('home.downloadCv')}
               </a>
             )}
           </div>
@@ -100,8 +114,8 @@ export default function Home() {
           style={{ borderColor: 'var(--green)' }}
         >
           <Image
-            src={profile.photo_url ?? '/img/MyFoto.png'}
-            alt={profile.full_name}
+            src={localizedProfile.photo_url ?? '/img/MyFoto.png'}
+            alt={localizedProfile.full_name}
             fill
             sizes="(min-width: 768px) 192px, 144px"
             className="object-cover object-top"

@@ -1,9 +1,9 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import imageCompression from 'browser-image-compression';
 import { Loader2, UploadCloud, FileText, X } from 'lucide-react';
-import { MEDIA_BUCKET, uploadFile, deleteFile, isImageFile, type MediaFolder } from '../lib/storage';
+import { MEDIA_BUCKET, deleteFile, type MediaFolder } from '../lib/storage';
+import { prepareAndUploadFile } from '../lib/uploadImage';
 import { supabase } from '../lib/supabase';
 
 interface FileUploaderProps {
@@ -38,16 +38,7 @@ export default function FileUploader({
     setError('');
     setUploading(true);
     try {
-      let targetFile: File | Blob = file;
-      if (isImageFile(file)) {
-        targetFile = await imageCompression(file, {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1600,
-          useWebWorker: true,
-          initialQuality: 0.8,
-        });
-      }
-      const { url, error: uploadError } = await uploadFile(folder, targetFile, file.name);
+      const { url, error: uploadError } = await prepareAndUploadFile(folder, file);
       if (uploadError) {
         setError(uploadError);
       } else if (url) {
