@@ -9,9 +9,9 @@
     "start": "next start",
     "lint": "eslint .",
     "db:validate": "supabase db lint",
-    "db:migrate": "supabase db push",
-    "db:status": "supabase migration list",
-    "db:diff": "supabase db diff --linked --schema public",
+    "db:migrate": "bash -c 'source scripts/db-url.sh && supabase db push --db-url \"$PGURL\" --skip-vault'",
+    "db:status": "bash -c 'source scripts/db-url.sh && supabase migration list --db-url \"$PGURL\"'",
+    "db:diff": "bash -c 'source scripts/db-url.sh && supabase db diff --db-url \"$PGURL\" --schema public'",
     "db:verify": "bash -c 'source scripts/db-url.sh && psql \"$PGURL\" -v ON_ERROR_STOP=1 -f database/verify_schema.sql'"
   },
   "dependencies": {
@@ -25,7 +25,6 @@
     "@tiptap/extension-link": "^3.33.0",
     "@tiptap/extension-placeholder": "^3.33.0",
     "@tiptap/extension-text-align": "^3.33.0",
-    "@tiptap/extension-underline": "^3.33.0",
     "@tiptap/pm": "^3.33.0",
     "@tiptap/react": "^3.33.0",
     "@tiptap/starter-kit": "^3.33.0",

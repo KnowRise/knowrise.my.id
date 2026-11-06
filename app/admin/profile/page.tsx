@@ -71,7 +71,7 @@ export default function ProfileAdmin() {
       .eq('id', 'primary');
 
     if (error) {
-      setToast({ msg: 'Failed to save changes.', type: 'error' });
+      setToast({ msg: `Failed to save changes: ${error.message}`, type: 'error' });
     } else {
       setToast({ msg: 'Profile updated successfully!', type: 'success' });
     }
